@@ -14,9 +14,6 @@
 1. Whisk eggs and sugar together until light and fluffy.
 2. Melt the butter and mix it with the milk. Add this to the egg mixture.
 3. Combine the dry ingredients and fold them into the batter.
-4. Add flavoring of your choice (e.g., berry, chocolate, or carrot cake flavor).
+4. Add flavoring of your choice (e.g., berry, chocolate, nuts).
 5. Distribute the batter into muffin cups and bake at 175°C (347°F) for 20-25 minutes.
-6. Decorate the muffins with icing, optionally colored with food dye, and garnish with nuts, sprinkles, or candies like Nonstop.
-
-Enjoy your homemade muffins!
 
