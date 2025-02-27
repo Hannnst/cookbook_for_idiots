@@ -2,9 +2,9 @@
 
 ## Ingredients:
 - 2 eggs
-- 2 dl sugar
+- 2dl sugar
 - 130g Butter
-- 1 dl TINE® Whole Milk (3.5% fat)
+- 1dl milk
 - 210g flour
   `For gluten-free flour: 2/4 rice flour, 1/4 oat flour, 1/4 corn flour)`
 - 2 tsp baking powder
