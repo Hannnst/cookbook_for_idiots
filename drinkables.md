@@ -2,7 +2,7 @@
 
 ## Classic & Creative Lattes (Warm or Iced)
 
-### Classic Matcha Latte
+### Classic Matcha Latte 🍵
 - matcha
 - milk
 - hot water
@@ -10,7 +10,7 @@
 #### TODO:
 - Whisk matcha with hot water, then add milk.
 
-### Strawberry Matcha Latte
+### Strawberry Matcha Latte 🍓🍵
 - matcha
 - milk
 - strawberry puree
@@ -19,7 +19,7 @@
 #### TODO:
 - Layer strawberry puree, ice, milk, and matcha.
 
-### Sakura Matcha Latte
+### Sakura Matcha Latte 🌸🍵
 - matcha
 - milk
 - sakura syrup
@@ -27,14 +27,14 @@
 #### TODO:
 - Whisk matcha and mix with milk and sakura syrup.
 
-### Coconut Matcha Latte
+### Coconut Matcha Latte 🥥🍵
 - matcha
 - coconut milk
 
 #### TODO:
 - Whisk matcha and mix with warmed coconut milk.
 
-### Honey Lavender Matcha
+### Honey Lavender Matcha 🍯💜🍵
 - matcha
 - milk
 - honey
@@ -43,7 +43,7 @@
 #### TODO:
 - Whisk matcha, add milk, honey, and lavender.
 
-### Rose Matcha Latte
+### Rose Matcha Latte 🌹🍵
 - matcha
 - rose syrup
 - milk
@@ -51,7 +51,7 @@
 #### TODO:
 - Whisk matcha, mix with milk and rose syrup.
 
-### Matcha Vanilla Bean Latte
+### Matcha Vanilla Bean Latte 🍵🍦
 - matcha
 - vanilla extract
 - milk
@@ -59,7 +59,7 @@
 #### TODO:
 - Whisk matcha, add vanilla and milk.
 
-### Iced Pineapple Matcha
+### Iced Pineapple Matcha 🍍❄️🍵
 - matcha
 - pineapple juice
 - ice
@@ -67,7 +67,7 @@
 #### TODO:
 - Shake matcha with pineapple juice over ice.
 
-### Watermelon Matcha Cooler
+### Watermelon Matcha Cooler 🍉❄️🍵
 - matcha
 - watermelon juice
 - ice
@@ -75,7 +75,7 @@
 #### TODO:
 - Blend watermelon juice with matcha and serve over ice.
 
-### Matcha Mojito
+### Matcha Mojito 🍃🍋🍵
 - matcha
 - mint
 - lime juice
@@ -87,14 +87,14 @@
 
 ## Espresso-Based
 
-### Classic Caffè Latte
+### Classic Caffè Latte ☕🥛
 - espresso
 - milk
 
 #### TODO:
 - Pour espresso, then add steamed milk.
 
-### Vanilla Bean Latte
+### Vanilla Bean Latte 🍦☕🥛
 - espresso
 - milk
 - vanilla syrup
@@ -102,7 +102,7 @@
 #### TODO:
 - Pour espresso, add milk and vanilla syrup.
 
-### Caramel Espresso Latte
+### Caramel Espresso Latte 🍮☕🥛
 - espresso
 - milk
 - caramel syrup
@@ -110,7 +110,7 @@
 #### TODO:
 - Mix espresso with milk and caramel syrup.
 
-### Espresso Tonic
+### Espresso Tonic 🍹☕❄️
 - espresso
 - tonic water
 - ice
@@ -118,7 +118,7 @@
 #### TODO:
 - Pour a glass of ice, espresso, and tonic water in said order.
 
-### Lavender Honey Latte
+### Lavender Honey Latte 🍯💜☕🥛
 - espresso
 - milk
 - lavender syrup
@@ -127,7 +127,7 @@
 #### TODO:
 - Mix espresso with milk, lavender, and honey.
 
-### Brown Sugar Cinnamon Latte
+### Brown Sugar Cinnamon Latte 🍩☕🥛
 - espresso
 - milk
 - brown sugar
@@ -136,7 +136,7 @@
 #### TODO:
 - Combine espresso, milk, sugar, and cinnamon.
 
-### Pumpkin Spice Latte
+### Pumpkin Spice Latte 🎃☕🥛
 - espresso
 - milk
 - pumpkin puree
@@ -145,7 +145,7 @@
 #### TODO:
 - Mix all ingredients and heat together.
 
-### Orange Mocha Latte
+### Orange Mocha Latte 🍊☕🍫
 - espresso
 - milk
 - cocoa powder
@@ -154,7 +154,7 @@
 #### TODO:
 - Blend espresso, milk, cocoa, and orange zest.
 
-### Salted Caramel Espresso
+### Salted Caramel Espresso 🍬☕🥛
 - espresso
 - salted caramel
 - milk
@@ -162,7 +162,7 @@
 #### TODO:
 - Mix all and top with caramel drizzle.
 
-### Maple Bourbon Latte
+### Maple Bourbon Latte 🍁🥃☕🥛
 - espresso
 - milk
 - maple syrup
