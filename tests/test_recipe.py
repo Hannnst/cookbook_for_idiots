@@ -6,7 +6,9 @@ Run with:
 
 from __future__ import annotations
 
+import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -214,6 +216,123 @@ class TestAffiliateUnwrapping(unittest.TestCase):
         self.assertIn("Fruit", [h for h, _ in self.ing])
 
 
+class TestRecipeFilename(unittest.TestCase):
+    def test_simple_title(self):
+        self.assertEqual(recipe.recipe_filename("Earl Grey Tea Cake"), "earl_grey_tea_cake.md")
+
+    def test_punctuation_and_ampersand(self):
+        self.assertEqual(
+            recipe.recipe_filename("Steak & Frites: The Classic"),
+            "steak_and_frites_the_classic.md",
+        )
+
+    def test_diacritics_become_ascii(self):
+        self.assertEqual(recipe.recipe_filename("Crème Brûlée"), "creme_brulee.md")
+
+    def test_digits_are_kept(self):
+        self.assertEqual(recipe.recipe_filename("7 Layer Dip"), "7_layer_dip.md")
+        self.assertEqual(recipe.recipe_filename("5-Minute Salad"), "5_minute_salad.md")
+
+    def test_long_title_is_truncated_on_word_boundary(self):
+        name = recipe.recipe_filename("word " * 40)
+        self.assertTrue(name.endswith(".md"))
+        self.assertLessEqual(len(name) - 4, 80)
+        self.assertFalse(name[:-4].endswith("_"))
+
+    def test_empty_title_falls_back(self):
+        self.assertEqual(recipe.recipe_filename("!!! ???"), "recipe.md")
+
+    def test_consecutive_separators_collapse(self):
+        self.assertEqual(recipe.recipe_filename("A -- B __ C"), "a_b_c.md")
+
+
+class TestOutputNaming(unittest.TestCase):
+    """The draft is saved under the title and an existing recipe is never clobbered."""
+
+    HTML = """<!doctype html><html><head><title>x</title></head><body>
+    <div class="entry-content"><h1>Test Bean Soup</h1>
+      <h2>Ingredients</h2><ul><li>1 tablespoon olive oil</li></ul>
+      <h2>Instructions</h2><ol><li>Heat the oil in a pan until hot.</li></ol>
+    </div></body></html>"""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.cwd = os.getcwd()
+        os.chdir(self.tmp.name)
+        self.addCleanup(os.chdir, self.cwd)
+        self.real_fetch = recipe.fetch
+        recipe.fetch = lambda url: self.HTML
+        self.addCleanup(setattr, recipe, "fetch", self.real_fetch)
+
+    def _run(self, extra):
+        args = recipe.build_parser().parse_args(["https://example.com/x"] + extra)
+        return recipe.run(args)
+
+    def test_saves_file_named_after_the_title(self):
+        self.assertEqual(self._run(["--no-open", "--title", "Test Bean Soup"]), 0)
+        self.assertTrue(os.path.exists("test_bean_soup.md"))
+        self.assertIn("# Test Bean Soup", Path("test_bean_soup.md").read_text())
+
+    def test_existing_file_is_not_overwritten(self):
+        with open("test_bean_soup.md", "w") as handle:
+            handle.write("MY HAND EDITED RECIPE")
+        code = self._run(["--no-open", "--title", "Test Bean Soup"])
+        self.assertEqual(code, 1)
+        self.assertEqual(Path("test_bean_soup.md").read_text(), "MY HAND EDITED RECIPE")
+
+    def test_force_overwrites(self):
+        with open("test_bean_soup.md", "w") as handle:
+            handle.write("OLD")
+        self.assertEqual(self._run(["--no-open", "--force", "--title", "Test Bean Soup"]), 0)
+        self.assertIn("# Test Bean Soup", Path("test_bean_soup.md").read_text())
+
+    def test_dash_output_writes_nothing(self):
+        self.assertEqual(self._run(["-o", "-", "--no-open"]), 0)
+        self.assertEqual(os.listdir("."), [])
+
+    def test_explicit_output_path_is_honoured(self):
+        self.assertEqual(self._run(["-o", "custom.md", "--no-open"]), 0)
+        self.assertTrue(os.path.exists("custom.md"))
+
+
+class TestVolumeUnitLinting(unittest.TestCase):
+    """ml is only wrong where dl would actually read better."""
+
+    def _lint(self, body):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "r.md"
+            path.write_text(
+                f"# T\n\n## Ingredients:\n\n- {body}\n\n## TODO:\n\n1. Do it.\n",
+                encoding="utf-8",
+            )
+            return recipe.lint(path)
+
+    def test_small_ml_is_fine(self):
+        self.assertEqual(self._lint("10 ml vanilla extract"), [])
+
+    def test_tiny_ml_is_fine(self):
+        self.assertEqual(self._lint("2 ml cream of tartar"), [])
+
+    def test_large_ml_is_flagged(self):
+        self.assertIn(
+            "ml where the house style uses dl: 250 ml",
+            self._lint("250 ml milk"),
+        )
+
+    def test_cl_and_l_are_converted_before_comparing(self):
+        self.assertIn(
+            "ml where the house style uses dl: 20 cl",
+            self._lint("20 cl double cream"),
+        )
+
+    def test_litre_is_flagged(self):
+        self.assertIn(
+            "ml where the house style uses dl: 1.5 l",
+            self._lint("1.5 l stock"),
+        )
+
+
 class TestSchemaOrg(unittest.TestCase):
     """Tier 1: JSON-LD schema.org/Recipe, which many big recipe sites provide."""
 
@@ -254,7 +373,7 @@ class TestSchemaOrg(unittest.TestCase):
 
 class TestLint(unittest.TestCase):
     def test_clean_repo_file_passes(self):
-        self.assertEqual(recipe.lint(ROOT / "broccoli_cauliflower_gratin.md"), [])
+        self.assertEqual(recipe.lint(ROOT / "dinner" / "broccoli_cauliflower_gratin.md"), [])
 
     def test_cups_are_flagged(self):
         path = Path(self.enterContext(__import__("tempfile").TemporaryDirectory())) / "x.md"
