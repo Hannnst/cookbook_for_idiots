@@ -1,0 +1,7 @@
+# Requires Python >= 3.10 (recipe-scrapers dropped 3.9 in 15.11.0).
+# Homebrew Python 3.14 already on this machine:
+#   /opt/homebrew/opt/python@3.14/bin/python3.14 -m venv .venv
+#   .venv/bin/python -m pip install -r requirements.txt
+recipe-scrapers[online]==15.12.0
+beautifulsoup4>=4.12.3
+lxml>=6.0
