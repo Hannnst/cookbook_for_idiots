@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """Extract a recipe from a URL and render it in this repo's house style.
 
-    ./recipe.py https://example.com/some-recipe
-    ./recipe.py URL -o earl_grey_cake.md
+    ./recipe.py https://example.com/some-recipe     # saves earl_grey_tea_cake.md
+    ./recipe.py URL -o other_name.md                # save under a specific name
+    ./recipe.py URL -o -                            # print to stdout instead
     ./recipe.py --lint broccoli_cauliflower_gratin.md
 
-The output is always a draft for review. Nothing is committed.
+The saved file is named after the recipe title, and is opened in your editor when
+run from a terminal. The output is always a draft for review. Nothing is committed.
 """
 
 from __future__ import annotations
@@ -13,7 +15,10 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import shlex
+import subprocess
 import sys
+import unicodedata
 from pathlib import Path
 
 # Re-exec under this project's virtualenv when started by an interpreter that does
@@ -663,11 +668,18 @@ def lint(path: Path) -> list[str]:
     for label, pattern in (
         ("cups", r"\bcups?\b"),
         ("imperial mass (oz/lb)", r"\bfl\.?\s*oz\b|\bounces?\b|\b(?:lbs?|pounds?)\b"),
-        ("ml where the house style uses dl", r"\b\d\s?ml\b"),
     ):
         match = re.search(pattern, text, re.M | re.I)
         if match:
             problems.append(f"{label}: {match.group(0)!r}")
+
+    # Only flag ml where dl would actually read better. A spoonful of vanilla or
+    # 2 ml of cream of tartar would be absurd as "0.02 dl".
+    for amount, unit in re.findall(r"(\d+(?:[.,]\d+)?)\s*(ml|cl|l)\b", text, re.I):
+        millilitres = float(amount.replace(",", ".")) * {"ml": 1, "cl": 10, "l": 1000}[unit.lower()]
+        if millilitres >= 100:
+            problems.append(f"ml where the house style uses dl: {amount} {unit.lower()}")
+            break
 
     # The house style is "N°C (N°F)" on every temperature. Remove the pairs that
     # already comply, then look for leftovers.
@@ -694,18 +706,79 @@ def lint(path: Path) -> list[str]:
 # ------------------------------------------------------------------------ cli
 
 
+def recipe_filename(title: str, max_length: int = 80) -> str:
+    """Turn a recipe title into a snake_case filename.
+
+    "Earl Grey Tea Cake" -> "earl_grey_tea_cake.md"
+    """
+    ascii_title = unicodedata.normalize("NFKD", title)
+    ascii_title = "".join(ch for ch in ascii_title if not unicodedata.combining(ch))
+    ascii_title = ascii_title.lower().replace("&", " and ")
+    slug = re.sub(r"[^a-z0-9]+", "_", ascii_title).strip("_")
+    if len(slug) > max_length:
+        truncated = slug[:max_length].rsplit("_", 1)[0].strip("_")
+        slug = truncated or slug[:max_length].strip("_")
+    if not slug:
+        slug = "recipe"
+    return f"{slug}.md"
+
+
+def open_in_editor(path: Path) -> None:
+    """Open a file for editing, preferring $VISUAL/$EDITOR over the OS default."""
+    editor = os.environ.get("VISUAL") or os.environ.get("EDITOR")
+    if editor:
+        try:
+            subprocess.call([*shlex.split(editor), str(path)])
+            return
+        except OSError:
+            pass
+    opener = "open" if sys.platform == "darwin" else "xdg-open"
+    try:
+        subprocess.call([opener, str(path.resolve())])
+    except OSError:
+        pass
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("url", nargs="?", help="recipe page to extract")
-    parser.add_argument("-o", "--output", type=Path, help="write the draft here instead of stdout")
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        help="write the draft here instead of auto-naming it from the title ('-' for stdout)",
+    )
     parser.add_argument("--lint", type=Path, action="append", default=[], help="check a file for house style")
+    parser.add_argument(
+        "--lint-all",
+        action="store_true",
+        help="check every recipe in the recipe folders (bread/, dinner/, dessert/, drinks/)",
+    )
     parser.add_argument("--title", help="override the title")
     parser.add_argument("--no-report", action="store_true", help="hide the conversion/conflict report")
+    parser.add_argument(
+        "--force", action="store_true", help="overwrite the output file if it already exists"
+    )
+    parser.add_argument(
+        "--no-open", action="store_true", help="do not open the saved file in an editor"
+    )
     return parser
+
+
+def recipe_folder_paths(root: Path = None) -> list[Path]:
+    """Every recipe markdown file in the repo's category folders, sorted."""
+    base = (root or Path(__file__).parent.parent)
+    found: list[Path] = []
+    for folder in ("bread", "dinner", "dessert", "drinks"):
+        found.extend(sorted((base / folder).glob("*.md")))
+    return found
 
 
 def run(args: argparse.Namespace) -> int:
     exit_code = 0
+
+    if args.lint_all:
+        args.lint.extend(recipe_folder_paths())
 
     for target in args.lint:
         problems = lint(target)
@@ -747,11 +820,22 @@ def run(args: argparse.Namespace) -> int:
 
         markdown = render(args.title or title, converted_ing, converted_steps)
 
-        if args.output:
-            args.output.write_text(markdown, encoding="utf-8")
-            print(f"wrote {args.output} ({tier})", file=sys.stderr)
-        else:
+        to_stdout = args.output is not None and str(args.output) == "-"
+        if to_stdout:
             print(markdown)
+            saved_path: Path | None = None
+        else:
+            final_title = args.title or title
+            saved_path = args.output or Path(recipe_filename(final_title))
+            if saved_path.exists() and not args.force:
+                print(
+                    f"\n{saved_path} already exists and will not be overwritten.\n"
+                    f"  Pass --force to replace it, -o NAME to save under another name, "
+                    f"or -o - to print to stdout.",
+                    file=sys.stderr,
+                )
+                return 1
+            saved_path.write_text(markdown, encoding="utf-8")
 
         if not args.no_report:
             sys.stdout.flush()
@@ -776,6 +860,19 @@ def run(args: argparse.Namespace) -> int:
                 for conflict in conflicts:
                     print(conflict, file=sys.stderr)
                 print("\n  Check each of these against the source before using.", file=sys.stderr)
+
+        # Always name the file, so the draft is easy to find again.
+        if saved_path is not None:
+            print(f"\nsaved as: {saved_path.name}", file=sys.stderr)
+            print(f"         {saved_path.resolve()}", file=sys.stderr)
+
+            interactive = sys.stdout.isatty() and sys.stderr.isatty()
+            if not args.no_open and interactive:
+                print("opening in your editor ...", file=sys.stderr)
+                sys.stderr.flush()
+                open_in_editor(saved_path)
+            elif not args.no_open:
+                print("         (run this in a terminal to open it automatically)", file=sys.stderr)
 
     if not args.url and not args.lint:
         build_parser().print_help()
