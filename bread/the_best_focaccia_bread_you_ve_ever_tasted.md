@@ -1,9 +1,6 @@
 # The Best Focaccia Bread You've Ever Tasted
 
 ## Ingredients:
-
-### Simple Ingredients
-
 - 3.9 dl Water (400 milliliters)
 - 4 tsp. Fresh yeast (10 g, or 2 tsp. (6 g) dry yeast)
 - 1 tsp. Sugar (helps activate the yeast)
