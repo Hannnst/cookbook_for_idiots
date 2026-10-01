@@ -18,6 +18,7 @@ import re
 import shlex
 import subprocess
 import sys
+import time
 import unicodedata
 from pathlib import Path
 
@@ -39,6 +40,8 @@ import requests
 from bs4 import BeautifulSoup, NavigableString, Tag
 
 sys.path.insert(0, str(Path(__file__).parent))
+import classify  # noqa: E402
+import sources  # noqa: E402
 from units import normalize_line  # noqa: E402
 
 # (heading, lines) pairs: one entry per sub-group such as "For the cake".
@@ -83,12 +86,15 @@ _JUNK_HEADINGS = re.compile(
 )
 
 _INGREDIENT_HEADINGS = re.compile(
-    r"^(ingredients?|what you(?:'|’)ll need|you need|shopping list|what you need)\b", re.I
+    r"^(ingredients?|what you(?:'|’)ll need|you need|shopping list|what you need|"
+    r"ingredienser|ingredienslista|det du trenger)\b",
+    re.I,
 )
 _METHOD_HEADINGS = re.compile(
     r"^(instructions?|directions?|method|steps?|preparation|procedure|how to make|"
     r"instructions$|making it|let(?:'|’)s (?:make|bake|cook)|step[- ]by[- ]step|"
-    r"method$|what to do|process)\b",
+    r"method$|what to do|process|"
+    r"fremgangsmåte|fremgangs måte|tilberedning|slik gjør du|så gjør du det)\b",
     re.I,
 )
 
@@ -678,7 +684,9 @@ def lint(path: Path) -> list[str]:
     for amount, unit in re.findall(r"(\d+(?:[.,]\d+)?)\s*(ml|cl|l)\b", text, re.I):
         millilitres = float(amount.replace(",", ".")) * {"ml": 1, "cl": 10, "l": 1000}[unit.lower()]
         if millilitres >= 100:
-            problems.append(f"ml where the house style uses dl: {amount} {unit.lower()}")
+            problems.append(
+                f"house style uses dl: write {amount} {unit.lower()} as {millilitres / 100:g} dl"
+            )
             break
 
     # The house style is "N°C (N°F)" on every temperature. Remove the pairs that
@@ -706,13 +714,27 @@ def lint(path: Path) -> list[str]:
 # ------------------------------------------------------------------------ cli
 
 
+# Letters that survive NFKD unchanged but have no ASCII equivalent, so they are
+# transliterated rather than silently deleted from the filename.
+_TRANSLITERATIONS = {
+    "æ": "ae", "ø": "o", "å": "aa", "Æ": "ae", "Ø": "o", "Å": "aa",
+    "ä": "a", "ö": "o", "ü": "ue", "ß": "ss", "đ": "d", "ħ": "h",
+}
+
+
 def recipe_filename(title: str, max_length: int = 80) -> str:
     """Turn a recipe title into a snake_case filename.
 
     "Earl Grey Tea Cake" -> "earl_grey_tea_cake.md"
+
+    Letters that NFKD does not decompose are transliterated by hand, otherwise
+    Norwegian titles lose characters entirely: "surdeigsbrød" would come out as
+    "surdeigsbr_d".
     """
     ascii_title = unicodedata.normalize("NFKD", title)
     ascii_title = "".join(ch for ch in ascii_title if not unicodedata.combining(ch))
+    for character, replacement in _TRANSLITERATIONS.items():
+        ascii_title = ascii_title.replace(character, replacement)
     ascii_title = ascii_title.lower().replace("&", " and ")
     slug = re.sub(r"[^a-z0-9]+", "_", ascii_title).strip("_")
     if len(slug) > max_length:
@@ -739,9 +761,108 @@ def open_in_editor(path: Path) -> None:
         pass
 
 
+def collect_targets(args: argparse.Namespace) -> list[tuple[str, str | None]] | None:
+    """Every URL to process, from -x and/or the positional arguments.
+
+    Returns None when a source could not be read, so the caller can exit.
+    """
+    targets: list[tuple[str, str | None]] = []
+    if args.batch:
+        try:
+            targets.extend(sources.discover(args.batch))
+        except sources.SourceError as error:
+            print(f"error: {error}", file=sys.stderr)
+            return None
+    if args.url:
+        targets.extend(sources.links_from_args(args.url))
+    return targets
+
+
+def next_free_name(path: Path, taken: set[Path]) -> Path:
+    """path if it is free, otherwise path_2, path_3, and so on."""
+    if path not in taken:
+        return path
+    stem, suffix = path.stem, path.suffix
+    counter = 2
+    while path.parent / f"{stem}_{counter}{suffix}" in taken:
+        counter += 1
+    return path.parent / f"{stem}_{counter}{suffix}"
+
+
+def show_plan(targets: list[tuple[str, str | None]], args: argparse.Namespace) -> None:
+    """Print where a batch would write each recipe, without fetching anything."""
+    buckets: dict[str, list[str]] = {}
+    for url, title_hint in targets:
+        folder = args.folder or classify.classify_category(title_hint or "")[0]
+        name = recipe_filename(title_hint) if title_hint else "(unknown until fetched)"
+        buckets.setdefault(folder, []).append(f"{name}   <- {url}")
+
+    print(f"{len(targets)} recipes from the source\n", file=sys.stderr)
+    for folder in sorted(buckets):
+        print(f"normies/{folder}/  ({len(buckets[folder])})", file=sys.stderr)
+        for line in buckets[folder][:5]:
+            print(f"  {line}", file=sys.stderr)
+        if len(buckets[folder]) > 5:
+            print(f"  ... and {len(buckets[folder]) - 5} more", file=sys.stderr)
+        print("", file=sys.stderr)
+    print("Nothing was fetched. Re-run without --dry-run to save these.", file=sys.stderr)
+
+
+def summarise(outcomes: dict[str, list[tuple[str, str]]], hard_failures: int) -> None:
+    labels = {
+        "saved": "saved",
+        "suffixed": "saved under a numbered name (same title twice)",
+        "exists": "already existed, skipped (use --refresh to replace)",
+        "no_recipe": "no recipe found on the page",
+        "no_steps": "found ingredients but no instructions",
+        "failed": "fetch failed",
+    }
+    print("\n=== batch summary ===", file=sys.stderr)
+    for key, label in labels.items():
+        entries = outcomes[key]
+        print(f"{label}: {len(entries)}", file=sys.stderr)
+        for url, extra in entries:
+            suffix = f"  -> {extra}" if key in ("saved", "suffixed", "exists") else ""
+            print(f"  - {url}{suffix}", file=sys.stderr)
+    if hard_failures:
+        print(
+            f"\n{hard_failures} page(s) could not be fetched. Re-run to retry just those.",
+            file=sys.stderr,
+        )
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("url", nargs="?", help="recipe page to extract")
+    parser.add_argument(
+        "url", nargs="*", help="recipe page to extract (several URLs run as a batch)"
+    )
+    parser.add_argument(
+        "-x",
+        "--batch",
+        metavar="SOURCE",
+        help="extract many recipes from a Google saved list URL or a text file of URLs",
+    )
+    parser.add_argument(
+        "--folder",
+        metavar="NAME",
+        help="batch only: save into this folder under normies/ instead of the classified one",
+    )
+    parser.add_argument(
+        "--refresh", action="store_true", help="batch only: overwrite files from an earlier run"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="batch only: show which URLs would be fetched and where they would go",
+    )
+    parser.add_argument("--limit", type=int, metavar="N", help="batch only: stop after N URLs")
+    parser.add_argument(
+        "--delay",
+        type=float,
+        default=1.0,
+        metavar="SECONDS",
+        help="batch only: pause between pages (default 1.0)",
+    )
     parser.add_argument(
         "-o",
         "--output",
@@ -766,11 +887,15 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def recipe_folder_paths(root: Path = None) -> list[Path]:
-    """Every recipe markdown file in the repo's category folders, sorted."""
+    """Every recipe markdown file in the repo's category folders, sorted.
+
+    normies/ is walked recursively because it holds one sub-folder per category.
+    """
     base = (root or Path(__file__).parent.parent)
     found: list[Path] = []
     for folder in ("bread", "dinner", "dessert", "drinks"):
         found.extend(sorted((base / folder).glob("*.md")))
+    found.extend(sorted((base / "normies").rglob("*.md")))
     return found
 
 
@@ -790,14 +915,80 @@ def run(args: argparse.Namespace) -> int:
         else:
             print(f"{target}: clean")
 
-    if args.url:
-        print(f"fetching {args.url} ...", file=sys.stderr)
-        html = fetch(args.url)
-        title, ingredient_groups, step_groups, tier = extract(html)
+    targets = collect_targets(args)
+    if targets is None:
+        return 1
+    if not targets and not args.lint and not args.lint_all:
+        build_parser().print_help()
+        return 1
+
+    batch_mode = bool(args.batch) or len(targets) > 1
+
+    if batch_mode and (args.output or args.title):
+        print(
+            "error: -o and --title need a single URL.\n"
+            "For a batch, the filename comes from each recipe's own title, and use "
+            "--folder to pick one destination folder.",
+            file=sys.stderr,
+        )
+        return 1
+
+    if not batch_mode and (args.folder or args.refresh):
+        flag = "--folder" if args.folder else "--refresh"
+        print(
+            f"error: {flag} only applies to a batch, and this is a single URL.\n"
+            "Pass two or more URLs, or use -x to read them from a list.",
+            file=sys.stderr,
+        )
+        return 1
+
+    if args.limit:
+        targets = targets[: args.limit]
+
+    if batch_mode and args.dry_run:
+        show_plan(targets, args)
+        return 0
+
+    outcomes: dict[str, list[tuple[str, str]]] = {
+        "saved": [], "no_recipe": [], "no_steps": [], "failed": [], "exists": [], "suffixed": [],
+    }
+    hard_failures = 0
+    written: set[Path] = set()
+
+    for position, (url, title_hint) in enumerate(targets):
+        if position and batch_mode and args.delay > 0:
+            time.sleep(args.delay)
+
+        try:
+            print(f"fetching {url} ...", file=sys.stderr)
+            html = fetch(url)
+            title, ingredient_groups, step_groups, tier = extract(html)
+        except Exception as error:
+            if not batch_mode:
+                print(f"error: {type(error).__name__}: {error}", file=sys.stderr)
+                return 1
+            hard_failures += 1
+            outcomes["failed"].append((url, f"{type(error).__name__}: {error}"))
+            print(f"  FAILED  {url}\n          {type(error).__name__}: {error}", file=sys.stderr)
+            continue
 
         if tier == "none":
-            print("Could not find a recipe on that page.", file=sys.stderr)
-            return 1
+            if not batch_mode:
+                print("Could not find a recipe on that page.", file=sys.stderr)
+                return 1
+            outcomes["no_recipe"].append((url, "no recipe found"))
+            print(f"  no recipe  {url}", file=sys.stderr)
+            continue
+
+        if not any(lines for _, lines in step_groups):
+            # An ingredient list with no instructions is a page we only half
+            # understood, and writing it produces an empty "## TODO:" section.
+            if not batch_mode:
+                print("Found ingredients but no instructions on that page.", file=sys.stderr)
+                return 1
+            outcomes["no_steps"].append((url, "ingredients but no instructions"))
+            print(f"  no steps   {url}", file=sys.stderr)
+            continue
 
         notes: list[str] = []
         converted_ing: Groups = []
@@ -826,16 +1017,44 @@ def run(args: argparse.Namespace) -> int:
             saved_path: Path | None = None
         else:
             final_title = args.title or title
-            saved_path = args.output or Path(recipe_filename(final_title))
-            if saved_path.exists() and not args.force:
-                print(
-                    f"\n{saved_path} already exists and will not be overwritten.\n"
-                    f"  Pass --force to replace it, -o NAME to save under another name, "
-                    f"or -o - to print to stdout.",
-                    file=sys.stderr,
+            if batch_mode:
+                saved_path = classify.target_path(
+                    title_hint or final_title, Path.cwd(), args.folder
                 )
-                return 1
+                saved_path.parent.mkdir(parents=True, exist_ok=True)
+                suffixed = False
+                if saved_path in written:
+                    saved_path = next_free_name(saved_path, written)
+                    suffixed = True
+                elif saved_path.exists() and not args.refresh:
+                    outcomes["exists"].append((url, saved_path.name))
+                    print(f"  exists    {url} -> {saved_path.name}", file=sys.stderr)
+                    continue
+                if suffixed:
+                    outcomes["suffixed"].append((url, saved_path.name))
+            else:
+                saved_path = args.output or Path(recipe_filename(final_title))
+                if saved_path.exists() and not args.force:
+                    print(
+                        f"\n{saved_path} already exists and will not be overwritten.\n"
+                        f"  Pass --force to replace it, -o NAME to save under another name, "
+                        f"or -o - to print to stdout.",
+                        file=sys.stderr,
+                    )
+                    return 1
             saved_path.write_text(markdown, encoding="utf-8")
+            written.add(saved_path)
+            outcomes["saved"].append((url, saved_path.name))
+
+        if batch_mode:
+            flat_ing = [line for _, lines in converted_ing for line in lines]
+            flat_steps = [line for _, lines in converted_steps for line in lines]
+            conflicts = find_conflicts(flat_ing, flat_steps)
+            detail = f"{len(flat_ing)} ingredients, {len(flat_steps)} steps"
+            if conflicts:
+                detail += f", {len(conflicts)} conflict(s)"
+            print(f"  saved     {url} -> {saved_path.name} ({detail})", file=sys.stderr)
+            continue
 
         if not args.no_report:
             sys.stdout.flush()
@@ -874,9 +1093,9 @@ def run(args: argparse.Namespace) -> int:
             elif not args.no_open:
                 print("         (run this in a terminal to open it automatically)", file=sys.stderr)
 
-    if not args.url and not args.lint:
-        build_parser().print_help()
-        return 1
+    if batch_mode:
+        summarise(outcomes, hard_failures)
+        return 1 if hard_failures else exit_code
     return exit_code
 
 
