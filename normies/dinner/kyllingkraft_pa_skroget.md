@@ -22,10 +22,10 @@
 14. Da sitter du igjen med noe som kalles Demi Glace. En veldig ren og konsentrert smak av kylling og de øvrige ingrediensene. Denne kan brukes som den er, over en god bit kylling, eller annen type kjøtt. Smak til med litt smør.
 15. I alle våre oppskrifter har vi regnet ut CO₂e-utslipp og andre variabler for klimapåvirkning som oppstår i forbindelse med produksjonen av rettene.
 16. Lavt CO₂e-utslipp: 0.1-0.5
-17. Autentisk meksikansk adobado kylling taco
-18. Ovnsbakt hel kylling med hvitløk, tomater og oliven
-19. Stekt kylling med sprø poteter og en tyttebærglasur
-20. Sunday Roast Chicken a la Cru
+17. Posjert kylling med ramsløk og parmesanskum
+18. Stekt kylling med sprø poteter og en tyttebærglasur
+19. Grillet hel bbq kylling med eksotisk salat
+20. Kremet blomkålsuppe med kraft
 21. Frisk og syrlig kyllingsalat
 22. Kyllingspyd med appelsin og rosmarin
 23. Kyllingvinger med koriansk glaze

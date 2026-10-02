@@ -6,6 +6,7 @@ Run with:
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
@@ -649,6 +650,134 @@ class TestLintAllIncludesNormies(unittest.TestCase):
         found = [str(p.relative_to(root)) for p in recipe.recipe_folder_paths(root)]
         self.assertEqual(sorted(found), ["bread/b.md", "dinner/a.md",
                                          "normies/dinner/c.md", "normies/dinner/d.md"])
+
+
+class TestEscapedEntities(unittest.TestCase):
+    """godfisk.no and friends put escaped HTML inside the JSON-LD strings.
+
+    Nothing decodes entities inside a <script> element, so these used to reach
+    the recipe file as `p&aring; 200 &deg;C` and the temperature converter
+    never saw them.
+    """
+
+    def _schema_page(self, payload):
+        return (
+            '<!doctype html><html><head><title>x</title>'
+            f'<script type="application/ld+json">{payload}</script>'
+            '</head><body><h1>Sei med rotgr&oslash;nnsaker</h1></body></html>'
+        )
+
+    def test_entities_in_plain_string_instructions_are_decoded(self):
+        payload = json.dumps(
+            {
+                "@type": "Recipe",
+                "name": "Sei med dillsaus",
+                "recipeIngredient": ["600 g seifilet"],
+                "recipeInstructions": [
+                    "Sett stekeovnen p&aring; 200 &deg;C. "
+                    "Skj&aelig;r seien, server med poteter.&nbsp;"
+                ],
+            }
+        )
+        page = self._schema_page(payload)
+        _, _, steps, tier = recipe.extract(page)
+        self.assertEqual(tier, "schema.org/Recipe")
+        self.assertEqual(len(steps), 1)
+        self.assertEqual(
+            steps[0][1][0], "Sett stekeovnen på 200 °C. Skjær seien, server med poteter."
+        )
+
+    def test_temperature_is_converted_once_entities_are_decoded(self):
+        payload = json.dumps(
+            {
+                "@type": "Recipe",
+                "name": "Torsk i ovn",
+                "recipeIngredient": ["600 g torsk"],
+                "recipeInstructions": ["Sett stekeovnen p&aring; 200 &deg;C."],
+            }
+        )
+        # Mirror the CLI pipeline: extract, convert, render.
+        title, ingredients, steps, _ = recipe.extract(self._schema_page(payload))
+        converted = [(h, [recipe.convert_step(line)[0] for line in lines]) for h, lines in steps]
+        rendered = recipe.render(title, ingredients, converted)
+        self.assertIn("200°C (392°F)", rendered)
+        self.assertNotIn("&deg;", rendered)
+
+    def test_entities_in_name_and_ingredients_are_decoded(self):
+        payload = json.dumps(
+            {
+                "@type": "Recipe",
+                "name": "Brent b&aring;skisk ostekake",
+                "recipeIngredient": ["200 g sm&oslash;r", "1 ss vaniljesukker"],
+                "recipeInstructions": ["Stek i 35 minutter."],
+            }
+        )
+        title, ingredients, _, _ = recipe.extract(self._schema_page(payload))
+        self.assertEqual(title, "Brent båskisk ostekake")
+        self.assertEqual(ingredients[0][1], ["200 g smør", "1 ss vaniljesukker"])
+
+    def test_entities_in_howtostep_dict_text_are_decoded(self):
+        payload = json.dumps(
+            {
+                "@type": "Recipe",
+                "name": "Kake",
+                "recipeIngredient": ["2 egg"],
+                "recipeInstructions": [
+                    {
+                        "@type": "HowToStep",
+                        "text": "Sett ovnen p&aring; 180 &deg;C og r&oslash;r sm&oslash;ret.",
+                    }
+                ],
+            }
+        )
+        _, _, steps, _ = recipe.extract(self._schema_page(payload))
+        self.assertEqual(steps[0][1][0], "Sett ovnen på 180 °C og rør smøret.")
+
+    def test_nbsp_becomes_a_plain_space(self):
+        page = (
+            '<!doctype html><html><body><div class="entry-content">'
+            "<h1>Kake</h1><h2>Ingredients</h2><ul><li>2 egg</li></ul>"
+            "<h2>Instructions</h2><ol><li>R&oslash;r sm&oslash;ret godt "
+            "og hvil i ti minutter her p&aring; siden.</li></ol></div></body></html>"
+        )
+        _, _, steps, tier = recipe.extract(page)
+        self.assertEqual(tier, "heading heuristic")
+        self.assertEqual(steps[0][1][0], "Rør smøret godt og hvil i ti minutter her på siden.")
+
+    def test_entities_are_unescaped_only_once(self):
+        # A genuinely doubled entity must not collapse all the way to "&".
+        self.assertEqual(recipe.clean_text("kongen &amp;amp; megleren"), "kongen &amp; megleren")
+        self.assertEqual(recipe.clean_text("salt &amp; pepper"), "salt & pepper")
+
+
+class TestCharsetDecoding(unittest.TestCase):
+    """nrk.no sends a bare `text/html`, and requests would guess ISO-8859-1."""
+
+    class FakeResponse:
+        def __init__(self, content, encoding, apparent="utf-8"):
+            self.content = content
+            self.encoding = encoding
+            self.apparent_encoding = apparent
+
+        @property
+        def text(self):
+            return self.content.decode(self.encoding or "utf-8", errors="replace")
+
+    def test_meta_charset_wins_when_the_header_omits_one(self):
+        body = '<html><head><meta charset="utf-8"></head><body>smør</body></html>'
+        decoded = recipe.decode_response(self.FakeResponse(body.encode("utf-8"), "ISO-8859-1"))
+        self.assertIn("smør", decoded)
+
+    def test_norwegian_letters_survive_the_iso8859_default(self):
+        body = "<html><body>også, blåbærsyltetøy</body></html>"
+        decoded = recipe.decode_response(self.FakeResponse(body.encode("utf-8"), "ISO-8859-1"))
+        self.assertIn("også, blåbærsyltetøy", decoded)
+        self.assertNotIn("Ã", decoded)
+
+    def test_explicit_latin1_header_is_trusted(self):
+        body = "<html><body>sm\xf8r</body></html>".encode("latin-1")
+        decoded = recipe.decode_response(self.FakeResponse(body, "ISO-8859-1"))
+        self.assertIn("sm\xf8r", decoded)
 
 
 class TestSchemaOrg(unittest.TestCase):

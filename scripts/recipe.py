@@ -20,6 +20,7 @@ import subprocess
 import sys
 import time
 import unicodedata
+from html import unescape
 from pathlib import Path
 
 # Re-exec under this project's virtualenv when started by an interpreter that does
@@ -145,9 +146,16 @@ def looks_like_intro(text: str) -> bool:
 
 
 def clean_text(node: Tag | NavigableString | str) -> str:
-    """Visible text of a node, with the whitespace blogs actually serve."""
+    """Visible text of a node, with the whitespace blogs actually serve.
+
+    Unescapes once, which matters for JSON-LD: some sites (godfisk.no) put
+    escaped HTML inside the JSON string itself, and nothing decodes entities
+    inside a <script> element, so `p&aring; 200 &deg;C` would otherwise reach
+    the file as-is and never match the temperature converter. Only one pass, so
+    a genuinely doubled `&amp;amp;` stays `&amp;`.
+    """
     text = node.get_text(" ", strip=True) if isinstance(node, Tag) else str(node)
-    text = text.replace("", "").replace("\xa0", " ")
+    text = unescape(text).replace("\xa0", " ")
     return re.sub(r"\s+", " ", text).strip()
 
 
@@ -189,12 +197,32 @@ def drop_junk(root: Tag) -> None:
         link.unwrap()
 
 
+def decode_response(response: requests.Response) -> str:
+    """Decode a page, preferring the charset the page itself declares.
+
+    `requests` defaults to ISO-8859-1 whenever the Content-Type header omits a
+    charset, which is legal but wrong for most pages in practice: nrk.no sends
+    a bare `text/html` while its own meta tag says UTF-8, so following the
+    default turns `smør` into `smÃ¸r`. An explicit header is always trusted;
+    only the ISO-8859-1 fallback is overridden.
+    """
+    encoding = response.encoding
+    if not encoding or encoding.lower() in ("iso-8859-1", "latin-1"):
+        head = response.content[:4096].decode("ascii", errors="ignore")
+        match = re.search(r"""charset=["']?([\w-]+)""", head, re.I)
+        encoding = match.group(1) if match else (response.apparent_encoding or "utf-8")
+    try:
+        return response.content.decode(encoding)
+    except (LookupError, UnicodeDecodeError):
+        return response.text
+
+
 def fetch(url: str, timeout: int = 30) -> str:
     response = requests.get(
         url, headers={"User-Agent": USER_AGENT, "Accept-Language": "en-US,en;q=0.9"}, timeout=timeout
     )
     response.raise_for_status()
-    return response.text
+    return decode_response(response)
 
 
 def content_root(soup: BeautifulSoup) -> Tag:
@@ -546,12 +574,14 @@ def from_schema(soup: BeautifulSoup) -> tuple[str, Groups, Groups] | None:
 
         recipe = find_recipe(data) if data else None
         if recipe:
-            name = str(recipe.get("name") or "").strip()
+            # Every string below comes from JSON, not from the HTML tree, so it
+            # has to go through clean_text explicitly to get unescaped.
+            name = clean_text(recipe.get("name") or "")
             ingredients = recipe.get("recipeIngredient") or recipe.get("ingredients") or []
             if isinstance(ingredients, str):
                 ingredients = [ingredients]
             if ingredients:
-                groups_ing.append(("", [str(i) for i in ingredients]))
+                groups_ing.append(("", [clean_text(i) for i in ingredients]))
 
             raw_steps = recipe.get("recipeInstructions") or []
             steps: list[str] = []
@@ -559,7 +589,7 @@ def from_schema(soup: BeautifulSoup) -> tuple[str, Groups, Groups] | None:
                 raw_steps = [raw_steps]
             for entry in raw_steps:
                 if isinstance(entry, str):
-                    steps.append(entry)
+                    steps.append(clean_text(entry))
                 elif isinstance(entry, dict):
                     if entry.get("name") and entry.get("itemListElement"):
                         lines = [
