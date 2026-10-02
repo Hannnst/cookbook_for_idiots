@@ -2,7 +2,15 @@
 
 ## Ingredients:
 
-- (none found)
+- 1 stk kyllingskrog (rester fra hel kylling)
+- 1 stk purreløk
+- 2 stk vanlig løk
+- 1 stk fennikel
+- 4 stk gulrot
+- 1 stk hvitløk
+- 2 l vann
+- INGREDIENSER INGREDIENSER
+- Kyllingkraft laget på skroget til hel kylling, redusert til tre forskjellige krafter.
 
 ## TODO:
 
@@ -21,11 +29,13 @@
 13. Når du kommer til 10-20% av den opprinnelige kraften vil det naturlige gelatinet i kyllingen begynne vise seg. Kraften vil bli tykkere og tykkere, og tilslutt blir den som en glace i samme konsistens som honning.
 14. Da sitter du igjen med noe som kalles Demi Glace. En veldig ren og konsentrert smak av kylling og de øvrige ingrediensene. Denne kan brukes som den er, over en god bit kylling, eller annen type kjøtt. Smak til med litt smør.
 15. I alle våre oppskrifter har vi regnet ut CO₂e-utslipp og andre variabler for klimapåvirkning som oppstår i forbindelse med produksjonen av rettene.
+### Denne retten har
+
 16. Lavt CO₂e-utslipp: 0.1-0.5
-17. Posjert kylling med ramsløk og parmesanskum
-18. Stekt kylling med sprø poteter og en tyttebærglasur
+17. Autentisk meksikansk adobado kylling taco
+18. Posjert kylling med ramsløk og parmesanskum
 19. Grillet hel bbq kylling med eksotisk salat
-20. Kremet blomkålsuppe med kraft
+20. Øldampet helstekt kylling ala Ragnar
 21. Frisk og syrlig kyllingsalat
 22. Kyllingspyd med appelsin og rosmarin
 23. Kyllingvinger med koriansk glaze

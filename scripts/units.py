@@ -35,6 +35,7 @@ _MASS_TO_G = {
     "g": 1.0, "gram": 1.0, "grams": 1.0, "gr": 1.0,
     "kg": 1000.0, "kilogram": 1000.0, "kilograms": 1000.0, "kilo": 1000.0, "kilos": 1000.0,
     "oz": 28.35, "ounce": 28.35, "ounces": 28.35,
+    "stick": 113.0, "sticks": 113.0,
     "lb": 453.59, "lbs": 453.59, "pound": 453.59, "pounds": 453.59,
 }
 
@@ -52,6 +53,7 @@ _VOLUME_ALIASES = {
 _MASS_ALIASES = {
     "oz": "oz", "ozs": "oz", "ounce": "oz", "ounces": "oz",
     "lb": "lb", "lbs": "lb", "pound": "lb", "pounds": "lb",
+    "stick": "stick", "sticks": "stick",
     "g": "g", "gram": "g", "grams": "g", "gr": "g",
     "kg": "kg", "kilogram": "kg", "kilograms": "kg", "kilo": "kg", "kilos": "kg",
 }
@@ -87,7 +89,20 @@ _MEASURE_RE = re.compile(
     r"(?P<num>\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+[.,]\d+|\d+)"
     r"(?:\s*(?:-|–|—|to|or)\s*(?P<num2>\d+\s*/\s*\d+|\d+[.,]\d+|\d+))?"
     r"\s*(?P<unit>fl\.?\s*oz|fluid\s+ounces?|tablespoons?|teaspoons?|cups?|tbsp|tbsps?|tblsp|"
-    r"tbs|ounces?|pounds?|lbs?|g|grams?|kilos?|kg|oz|lb|pints?|quarts?|gallons?|ml|dL|dl|cl|l)\b",
+    r"tbs|ounces?|pounds?|lbs?|sticks?|g|grams?|kilos?|kg|oz|lb|pints?|quarts?|gallons?|ml|dL|dl|cl|l)\b",
+    re.I,
+)
+
+# "105F-115F" / "105 F to 115 F": the unit sits before the hyphen.
+_TEMPERATURE_RANGE_RE = re.compile(
+    r"(?<![\d.])(\d{2,3})\s*[°º]?\s*(?:degrees\s+)?([FC])\s*(?:-|–|—|to)\s*"
+    r"(\d{2,3})\s*[°º]?\s*(?:degrees\s+)?\2\b",
+    re.I,
+)
+# "180-200 C": the unit follows both numbers. Requiring it here is what keeps
+# "2-3 forks" from reading as a temperature.
+_TEMPERATURE_RANGE_TRAILING_RE = re.compile(
+    r"(?<![\d.])(\d{2,3})\s*(?:-|–|—|to)\s*(\d{2,3})\s*[°º]?\s*(?:degrees\s+)?([FC])\b",
     re.I,
 )
 
@@ -273,6 +288,29 @@ def _convert_one(text: str, match: re.Match) -> tuple[str, str | None]:
     return (text[: match.start()] + replacement + text[match.end():], note)
 
 
+# British ovens, in degrees Celsius on a conventional (not fan) oven.
+_GAS_MARK_C = {1: 140, 2: 150, 3: 160, 4: 180, 5: 190, 6: 200, 7: 220, 8: 230, 9: 240}
+_GAS_MARK_RE = re.compile(r"(?<![\w/])gas\s+mark\s+([1-9])(?![\d])", re.I)
+
+
+def convert_gas_mark(text: str) -> tuple[str, list[str]]:
+    """Rewrite "gas mark 6" as "200°C (392°F)".
+
+    English recipes use the gas scale where Celsius is not printed at all, so
+    without this there is nothing for the Celsius pass to find. The values are
+    the conventional-oven ones; on a fan oven they read about 20°C lower.
+    """
+    notes: list[str] = []
+
+    def rewrite(match: re.Match) -> str:
+        celsius = _GAS_MARK_C[int(match.group(1))]
+        fahrenheit = int(round(celsius * 9 / 5 + 32))
+        notes.append(f"{match.group(0)} -> {celsius}°C ({fahrenheit}°F)")
+        return f"{celsius}°C ({fahrenheit}°F)"
+
+    return (_GAS_MARK_RE.sub(rewrite, text), notes)
+
+
 def convert_temperature(text: str) -> tuple[str, list[str]]:
     """Rewrite temperatures as ``N°C (N°F)``, Celsius rounded to 5 and F derived from it.
 
@@ -293,6 +331,33 @@ def convert_temperature(text: str) -> tuple[str, list[str]]:
         notes.append(f"{match.group(0).strip()} -> {rounded_c}°C ({derived_f}°F)")
         return stash(f"{rounded_c}°C ({derived_f}°F)")
 
+    def _range_replacement(low_raw: str, high_raw: str, scale_raw: str, original: str) -> str:
+        """A temperature range keeps both ends; a hyphen is not a minus sign."""
+
+        def to_celsius(value: float, unit: str) -> int:
+            if unit == "F":
+                return int(round(((value - 32) * 5 / 9) / 5.0) * 5)
+            return int(round(value))
+
+        def to_fahrenheit(celsius: int) -> int:
+            return int(round(celsius * 9 / 5 + 32))
+
+        low_c = to_celsius(float(low_raw), scale_raw.upper())
+        high_c = to_celsius(float(high_raw), scale_raw.upper())
+        replacement = (
+            f"{low_c}-{high_c}°C ({to_fahrenheit(low_c)}-{to_fahrenheit(high_c)}°F)"
+        )
+        notes.append(f"{original.strip()} -> {replacement}")
+        return stash(replacement)
+
+    def from_range(match: re.Match) -> str:
+        low_raw, scale_raw, high_raw = match.groups()
+        return _range_replacement(low_raw, high_raw, scale_raw, match.group(0))
+
+    def from_trailing_range(match: re.Match) -> str:
+        low_raw, high_raw, scale_raw = match.groups()
+        return _range_replacement(low_raw, high_raw, scale_raw, match.group(0))
+
     def from_c(match: re.Match) -> str:
         celsius = float(match.group(1))
         fahrenheit = int(round(celsius * 9 / 5 + 32))
@@ -303,6 +368,8 @@ def convert_temperature(text: str) -> tuple[str, list[str]]:
     # ever re-reads a "°C (…°F)" it just produced.
     text = re.sub(r"\d{2,3}\s*[°º]?\s*C\s*\(\s*\d{2,3}\s*[°º]?\s*F\s*\)",
                   lambda m: stash(m.group(0)), text, flags=re.I)
+    text = _TEMPERATURE_RANGE_RE.sub(from_range, text)
+    text = _TEMPERATURE_RANGE_TRAILING_RE.sub(from_trailing_range, text)
     text = re.sub(r"(?<![\d.])(-?\d{2,3})\s*[°º]?\s*(?:degrees\s+)?F\b", from_f, text, flags=re.I)
     text = re.sub(r"(?<![\d.])(-?\d{2,3})\s*[°º]?\s*(?:degrees\s+)?C\b", from_c, text, flags=re.I)
     text = re.sub(r"\x00(.)\x00", lambda m: pairs[ord(m.group(1)) - 0xE000], text)
@@ -311,7 +378,9 @@ def convert_temperature(text: str) -> tuple[str, list[str]]:
 
 def normalize_line(line: str) -> tuple[str, list[str]]:
     """Full pass over one line: temperature, measurement, spacing."""
+    line, gas_notes = convert_gas_mark(line)
     line, notes = convert_temperature(line)
+    notes = gas_notes + notes
     line, more = convert_quantity(line)
     if more:
         notes.extend(more)

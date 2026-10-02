@@ -832,3 +832,449 @@ class TestLint(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# --- plugin-markup recipes that have no JSON-LD -------------------------------
+# Three shapes showed up in the saved Google lists. None of them carry
+# schema.org data, so the extractor has to read the rendered markup, and each
+# one broke a different assumption in the heading heuristic.
+
+WP_ZOOM = """<html><body><div class="entry-content">
+  <div class="wp-block-wpzoom-recipe-card-block-recipe-card">
+    <h3>Ingredienser</h3>
+    <ul><li class="wpzoom-rcb-ingredient">200 g hvetemel</li>
+        <li class="wpzoom-rcb-ingredient">2 ss olje</li></ul>
+    <h3>Fremgangsmåte</h3>
+    <p>Bland alle ingrediensene godt sammen i en bolle.</p>
+  </div>
+</div></body></html>"""
+
+TABLE_CARD = """<html><body><article class="post">
+  <h3>Ingredienser</h3>
+  <table class="ingredients"><tbody><tr><td>300 g kylling</td></tr>
+    <tr><td>1 ss olje</td></tr></tbody></table>
+  <h3>SLIK GJØR DU</h3>
+  <ol><li>Stek kyllingen gylden på alle sider i oljen.</li></ol>
+</article></body></html>"""
+
+LABEL_PARAGRAPHS = """<html><body><div class="entry-content">
+  <p>Denne oppskriften gir et saftig brød med bokhvete og havre.</p>
+  <p>Du trenger</p>
+  <ul><li>200 g havregryn</li><li>200 g bokhvetemel</li><li>2 ts salt</li></ul>
+  <p>Utstyr</p>
+  <ul><li>Kjøkkenmaskin med k-spade</li></ul>
+  <p>Slik gjør du</p>
+  <p>1. Bland sammen alle de tørre ingrediensene i en bolle.</p>
+  <p>2. Elt deigen i ti minutter på middels hastighet.</p>
+</div></body></html>"""
+
+
+class TestPluginMarkup(unittest.TestCase):
+    def test_junk_selector_cannot_delete_the_recipe_card(self):
+        # '[class*="recipe-card"]' exists to strip sidebar widgets, but the main
+        # card on detgladekjokken.no has "recipe-card" in its class too.
+        title, ing, steps, tier = recipe.extract(WP_ZOOM)
+        self.assertEqual(tier, "heading heuristic")
+        self.assertEqual(title, "")
+        self.assertEqual([l for _, lines in ing for l in lines],
+                         ["200 g hvetemel", "2 ss olje"])
+        self.assertEqual(len([l for _, lines in steps for l in lines]), 1)
+
+    def test_h3_headings_are_read(self):
+        title, ing, steps, tier = recipe.extract(WP_ZOOM)
+        self.assertEqual(tier, "heading heuristic")
+        self.assertEqual(ing[0][0], "Ingredienser")
+        self.assertEqual(steps[0][0], "Fremgangsmåte")
+
+    def test_table_rows_are_ingredients(self):
+        title, ing, steps, tier = recipe.extract(TABLE_CARD)
+        self.assertEqual([l for _, lines in ing for l in lines],
+                         ["300 g kylling", "1 ss olje"])
+        self.assertEqual([l for _, lines in steps for l in lines],
+                         ["Stek kyllingen gylden på alle sider i oljen."])
+
+    def test_label_paragraphs_are_treated_as_headings(self):
+        title, ing, steps, tier = recipe.extract(LABEL_PARAGRAPHS)
+        self.assertEqual([l for _, lines in ing for l in lines],
+                         ["200 g havregryn", "200 g bokhvetemel", "2 ts salt"])
+        self.assertEqual(len([l for _, lines in steps for l in lines]), 2)
+
+    def test_equipment_list_is_not_an_ingredient_list(self):
+        title, ing, _, _ = recipe.extract(LABEL_PARAGRAPHS)
+        self.assertNotIn("Kjøkkenmaskin med k-spade", [l for _, g in ing for l in g])
+
+    def test_prose_steps_are_not_numbered_twice(self):
+        _, ing, steps, _ = recipe.extract(LABEL_PARAGRAPHS)
+        rendered = recipe.render("Brød", ing, steps)
+        self.assertIn("1. Bland sammen alle de tørre ingrediensene i en bolle.", rendered)
+        self.assertNotIn("1. 1.", rendered)
+        self.assertNotIn("2. 2.", rendered)
+
+
+# --- shapes that have no heading in front of the ingredient list ---------------
+
+DIV_ROWS = """<html><body><article class="recipe">
+  <div class="data__ingredients">
+    <div class="ing__row"><span>1</span><span>stk kyllingskrog</span></div>
+    <div class="ing__row"><span>2</span><span>stk purreløk</span></div>
+    <div class="ing__row"><span>4</span><span>l vann</span></div>
+  </div>
+  <h2>Slik gjør du</h2>
+  <ol><li>Skyll kyllingen og kutt den i biter.</li></ol>
+</article></body></html>"""
+
+ADJACENT_LIST = """<html><body><article>
+  <h2>Hønsebuljong</h2>
+  <ul><li>3 stk verpehøner</li><li>4 l vann</li><li>1 ts salt</li></ul>
+  <h2>Slik gjør du</h2>
+  <ol><li>Blansjer kyllingen i saltede vann i tjue minutter.</li></ol>
+</article></body></html>"""
+
+METHOD_ONLY = """<html><body><div class="entry-content">
+  <h2>Instructions</h2>
+  <ol><li>Heat the oil until hot and add the vegetables to the pan.</li></ol>
+</div></body></html>"""
+
+
+class TestHeadinglessIngredientLists(unittest.TestCase):
+    def test_div_rows_read_as_separate_ingredients(self):
+        # denstoltehane.no renders 7 "ingredienser__data--row" divs and no list
+        # tag, so the wrapper used to collapse onto one line.
+        title, ing, steps, tier = recipe.extract(DIV_ROWS)
+        self.assertEqual([l for _, lines in ing for l in lines],
+                         ["1 stk kyllingskrog", "2 stk purreløk", "4 l vann"])
+        self.assertEqual(len([l for _, lines in steps for l in lines]), 1)
+
+    def test_list_directly_above_the_method_is_the_ingredient_list(self):
+        # dn.no gives no "Ingredients" heading at all.
+        title, ing, steps, tier = recipe.extract(ADJACENT_LIST)
+        self.assertEqual([l for _, lines in ing for l in lines],
+                         ["3 stk verpehøner", "4 l vann", "1 ts salt"])
+        self.assertEqual(len([l for _, lines in steps for l in lines]), 1)
+
+    def test_bulleted_notes_are_not_mistaken_for_ingredients(self):
+        notes = ADJACENT_LIST.replace(
+            "<ul><li>3 stk verpehøner</li><li>4 l vann</li><li>1 ts salt</li></ul>",
+            "<ul><li>Great with potatoes</li><li>Also good cold</li></ul>",
+        )
+        title, ing, steps, tier = recipe.extract(notes)
+        self.assertEqual(ing, [])
+
+    def test_repeated_ingredient_block_is_not_read_as_instructions(self):
+        # The page repeats its ingredient list after the method.
+        repeated = TABLE_CARD.replace(
+            "</ol>", "</ol><h3>Ingredienser</h3><ul><li>1 stk løk</li></ul>",
+        )
+        title, ing, steps, tier = recipe.extract(repeated)
+        self.assertEqual([l for _, lines in ing for l in lines],
+                         ["300 g kylling", "1 ss olje"])
+        self.assertEqual([l for _, lines in steps for l in lines],
+                         ["Stek kyllingen gylden på alle sider i oljen."])
+
+
+class TestMethodWithoutIngredients(unittest.TestCase):
+    """Instructions with no ingredient list are as unusable as the reverse."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.cwd = os.getcwd()
+        os.chdir(self.tmp.name)
+        self.addCleanup(os.chdir, self.cwd)
+        self.real_fetch = recipe.fetch
+        self.addCleanup(setattr, recipe, "fetch", self.real_fetch)
+        recipe.fetch = lambda url: METHOD_ONLY
+
+    def test_batch_writes_nothing(self):
+        recipe.run(recipe.build_parser().parse_args(["https://a.com/x", "https://a.com/y",
+                                                     "--delay", "0"]))
+        written = [p for p in Path("normies").rglob("*.md")] if Path("normies").exists() else []
+        self.assertEqual(written, [])
+
+    def test_single_url_fails(self):
+        self.assertEqual(recipe.run(recipe.build_parser().parse_args(["https://a.com/x"])), 1)
+
+
+# ---------------------------------------------------------------- both languages
+# The saved lists are Norwegian but English pages are the common case elsewhere,
+# so every rule that reads a heading or a widget label has to answer to both.
+
+
+ENGLISH_CARD = """<html><body><div class="entry-content">
+  <h2>What You'll Need</h2>
+  <ul><li>2 cups all-purpose flour</li><li>1 stick unsalted butter</li>
+      <li>3 oz dark chocolate</li><li>1/2 cup granulated sugar</li>
+      <li>2 large eggs</li><li>1 tsp vanilla extract</li><li>1/4 tsp salt</li></ul>
+  <h2>Directions</h2>
+  <ol><li>Preheat the oven to 350 F and line a baking tray.</li>
+      <li>Cream the butter and sugar together until pale, then beat in the eggs.</li>
+      <li>Fold in the flour, the chocolate and a pinch of salt.</li></ol>
+  <p>Print Recipe</p>
+</div></body></html>"""
+
+NORWEGIAN_CARD = """<html><body><div class="entry-content">
+  <h2>Hva du trenger</h2>
+  <ul><li>2 dl hvetemel</li><li>1 pk smør</li><li>3 oz mørk sjokolade</li>
+      <li>2 ss sukker</li><li>2 egg</li><li>1 ts vaniljeekstrakt</li><li>1 ts salt</li></ul>
+  <h2>Slik lager du</h2>
+  <ol><li>Forvarm ovnen til 175 grader og klekk et tray.</li>
+      <li>Pisk smør og sukker til det er lyst, og tilsett eggene.</li>
+      <li>Vend inn melet, sjokoladen og en knapp spiss salt.</li></ol>
+  <p>Skriv ut</p>
+</div></body></html>"""
+
+
+class TestEnglishPages(unittest.TestCase):
+    def test_extracts_like_the_norwegian_equivalent(self):
+        title, ing, steps, tier = recipe.extract(ENGLISH_CARD)
+        self.assertEqual(tier, "heading heuristic")
+        self.assertEqual(sum(len(lines) for _, lines in ing), 7)
+        self.assertEqual(sum(len(lines) for _, lines in steps), 3)
+
+    def test_widget_button_does_not_become_a_step(self):
+        _, _, steps, _ = recipe.extract(ENGLISH_CARD)
+        self.assertNotIn("Print Recipe", [l for _, g in steps for l in g])
+
+
+class TestNorwegianPages(unittest.TestCase):
+    def test_slik_lager_du_is_a_method_heading(self):
+        _, _, steps, _ = recipe.extract(NORWEGIAN_CARD)
+        self.assertEqual(sum(len(lines) for _, lines in steps), 3)
+
+    def test_widget_button_does_not_become_a_step(self):
+        _, _, steps, _ = recipe.extract(NORWEGIAN_CARD)
+        self.assertNotIn("Skriv ut", [l for _, g in steps for l in g])
+
+
+class TestEnglishUnits(unittest.TestCase):
+    def test_imperial_measures_become_metric(self):
+        self.assertEqual(units.normalize_line("2 sticks butter")[0], "225 g butter")
+        self.assertEqual(units.normalize_line("3 oz dark chocolate")[0], "85 g dark chocolate")
+        self.assertEqual(units.normalize_line("1 cup sugar")[0], "200 g sugar")
+        self.assertEqual(units.normalize_line("2 tbsp olive oil")[0], "0.3 dl olive oil")
+
+    def test_fahrenheit_gets_a_celsius_pair(self):
+        text, notes = units.convert_temperature("bake at 350 F")
+        self.assertEqual(text, "bake at 175°C (347°F)")
+        self.assertTrue(notes)
+
+    def test_cup_of_flour_uses_density(self):
+        self.assertEqual(units.normalize_line("2 cups all-purpose flour")[0], "240 g all-purpose flour")
+
+
+class TestBilingualVocabulary(unittest.TestCase):
+    HEADINGS = {
+        recipe._INGREDIENT_HEADINGS: [
+            "Ingredients", "What You'll Need", "You'll need this", "What to Buy",
+            "Ingredienser", "Du trenger", "Hva du trenger", "Ingredienser til",
+        ],
+        recipe._METHOD_HEADINGS: [
+            "Instructions", "Directions", "Method", "Steps", "How to Make It",
+            "Let's Cook", "Fremgangsmåte", "Slik gjør du", "Slik lager du", "Tilberedning",
+        ],
+    }
+
+    def test_every_heading_spelling_is_recognised(self):
+        for pattern, headings in self.HEADINGS.items():
+            for heading in headings:
+                self.assertTrue(pattern.match(heading), f"{pattern.pattern[:20]} misses {heading!r}")
+
+    def test_ingredient_words_look_measured_in_both_languages(self):
+        for line in ("2 cups flour", "1 tbsp olive oil", "3 oz butter", "1 lb beef",
+                     "2 large eggs", "1 onion", "4 l vann", "2 ss rømme", "3 stk løk",
+                     "200 g hvetemel", "1 pinch of salt"):
+            self.assertTrue(recipe._MEASURED_INGREDIENT.match(line), f"{line!r} not measured")
+
+    def test_prose_is_not_measured(self):
+        for line in ("Great with potatoes", "1. Heat the oil", "Salt and pepper to taste"):
+            self.assertIsNone(recipe._MEASURED_INGREDIENT.match(line), f"{line!r} looks measured")
+
+    def test_widget_labels_are_junk_in_both_languages(self):
+        for text in ("Print Recipe", "Save Recipe", "Skriv ut", "Del", "Kommenter", "Følg oss"):
+            self.assertTrue(recipe.is_junk(text), f"{text!r} not treated as junk")
+
+    def test_ingredients_are_never_junk(self):
+        # "cookies" and "del" both start inside real ingredients and steps.
+        for text in ("225 g chocolate cookies", "1 cup cookies and cream",
+                     "Delicious and chewy", "Del deigen i to like biter"):
+            self.assertFalse(recipe.is_junk(text), f"{text!r} wrongly treated as junk")
+
+    def test_keywords_survive_norwegian_letters(self):
+        # A plain [a-z] class reduced "rømme" to "mme" and disabled the check.
+        self.assertEqual(recipe.ingredient_keyword("2 ss rømme"), "rømme")
+        self.assertEqual(recipe.ingredient_keyword("200 g hvetemel"), "hvetemel")
+        self.assertEqual(recipe.ingredient_keyword("3 oz butter"), "butter")
+
+
+class TestEnglishClassification(unittest.TestCase):
+    CASES = {
+        "Beef Stew": "dinner", "Vegetable Soup": "dinner", "French Onion Soup": "dinner",
+        "Turkey Roast": "dinner", "Lasagna": "dinner", "Potato Salad": "dinner",
+        "Mashed Potatoes": "dinner", "Grilled Cheese Sandwich": "dinner",
+        "Eggs Benedict": "dinner", "Shepherd's Pie": "dinner", "Onion Rings": "dinner",
+        "Pancakes": "dinner", "Beef Wellington": "dinner",
+        "Vanilla Ice Cream": "dessert", "Macarons": "dessert", "Chocolate Chip Cookies": "dessert",
+        "Apple Pie": "dessert", "Chocolate Mousse": "dessert", "Banana Pudding": "dessert",
+        "Sourdough Bread": "bread", "Banana Bread": "bread", "Garlic Bread": "bread",
+        "Chocolate Chip Scones": "bread", "Homemade Pizza": "dinner",
+        "Lemonade": "drinks", "Iced Coffee": "drinks", "Strawberry Smoothie": "drinks",
+        "Mint Tea": "drinks",
+    }
+
+    def test_english_titles_land_in_the_right_folder(self):
+        for title, folder in self.CASES.items():
+            got, _ = classify.classify_category(title)
+            self.assertEqual(got, folder, f"{title!r} -> {got}, wanted {folder}")
+
+    def test_norwegian_titles_are_unaffected(self):
+        for title, folder in {
+            "Kyllinggryte": "dinner", "Surdeigsbrød": "bread", "Sjokoladekake": "dessert",
+            "Kaffe": "drinks", "Fiskesuppe": "dinner", "Gulrotkake": "dessert",
+        }.items():
+            got, _ = classify.classify_category(title)
+            self.assertEqual(got, folder, f"{title!r} -> {got}, wanted {folder}")
+
+
+class TestBritishGasMark(unittest.TestCase):
+    """English recipes print a gas mark where a Norwegian one prints Celsius."""
+
+    def test_gas_mark_becomes_a_celsius_pair(self):
+        self.assertEqual(units.normalize_line("bake at gas mark 6")[0], "bake at 200°C (392°F)")
+
+    def test_every_mark_converts(self):
+        for mark in range(1, 10):
+            text, notes = units.convert_gas_mark(f"gas mark {mark}")
+            self.assertIn("°C (", text)
+            self.assertTrue(notes)
+
+    def test_a_pair_is_not_converted_twice(self):
+        text, _ = units.normalize_line("gas mark 6")[0], None
+        self.assertEqual(text, "200°C (392°F)")
+
+
+class TestTemperatureRanges(unittest.TestCase):
+    """A live English page (simplyrecipes) printed "warm water (105F-115F)" and
+    produced "-112F", because the hyphen was read as a minus sign."""
+
+    def test_fahrenheit_range_keeps_both_ends(self):
+        self.assertEqual(
+            units.normalize_line("warm water (105°F-115°F)")[0],
+            "warm water (40-45°C (104-113°F))",
+        )
+
+    def test_celsius_range_gets_both_fahrenheit_ends(self):
+        self.assertEqual(
+            units.normalize_line("bake at 180-200 C")[0],
+            "bake at 180-200°C (356-392°F)",
+        )
+
+    def test_unit_first_range(self):
+        self.assertEqual(units.convert_gas_mark("no match here")[0], "no match here")
+        self.assertEqual(units.normalize_line("105 F to 115 F")[0], "40-45°C (104-113°F)")
+
+    def test_bare_unit_range_word(self):
+        self.assertEqual(units.normalize_line("105F-115F")[0], "40-45°C (104-113°F)")
+
+    def test_a_range_needs_the_unit(self):
+        # Without the mandatory unit, "2-3 forks" would read as a temperature.
+        for line in ("2-3 forks", "2-3 forks diced", "3-4 cloves garlic"):
+            self.assertEqual(units.normalize_line(line)[0], line)
+
+    def test_such_a_range_is_reported(self):
+        _, notes = units.normalize_line("105°F-115°F")
+        self.assertTrue(any("105°F-115°F" in n for n in notes))
+
+    def test_existing_pairs_are_untouched(self):
+        for line in ("200°C (392°F)", "175°C (347°F)"):
+            self.assertEqual(units.normalize_line(line)[0], line)
+
+    def test_plain_scalars_still_convert(self):
+        self.assertEqual(units.normalize_line("350 F")[0], "175°C (347°F)")
+        self.assertEqual(units.normalize_line("gas mark 6")[0], "200°C (392°F)")
+
+
+class TestEquipmentIsNotAnIngredient(unittest.TestCase):
+    """detsoteliv.no lists "Tips til utstyr" after the ingredients; the heading
+    does not start with "utstyr", so it used to be filed as a second ingredient
+    group and pull the equipment list into the note."""
+
+    CARD = """<html><body><div class="entry-content">
+      <h2>Ingredienser</h2>
+      <ul><li>1,5 kg solbær</li><li>1,5 kg rips</li><li>1 kg sukker</li>
+          <li>Atamon (konserveringsmiddel)</li></ul>
+      <p>Tips til utstyr:</p>
+      <ul><li>saftkoker</li><li>saftflasker</li><li>stor kjele</li><li>sleiv og trakt</li></ul>
+      <h2>Fremgangsmåte</h2>
+      <ol><li>Rens bærene og fjern stilkene på ripsen grundig.</li>
+          <li>Hell bærene i saftkokeren og koke til de er myke.</li></ol>
+    </div></body></html>"""
+
+    def test_equipment_group_is_excluded(self):
+        _, ing, _, _ = recipe.extract(self.CARD)
+        flat = [l for _, g in ing for l in g]
+        self.assertEqual(len(flat), 4)
+        self.assertNotIn("saftkoker", flat)
+        self.assertNotIn("sleiv og trakt", flat)
+
+    def test_real_ingredients_survive(self):
+        _, ing, _, _ = recipe.extract(self.CARD)
+        flat = [l for _, g in ing for l in g]
+        self.assertIn("1,5 kg rips", flat)
+        self.assertIn("Atamon (konserveringsmiddel)", flat)
+
+    def test_equipment_headings_are_junk_in_both_languages(self):
+        for heading in ("Tips til utstyr", "Utstyr du trenger", "Equipment you'll need",
+                        "Utstyr", "Verktøy", "Tools"):
+            self.assertTrue(recipe._JUNK_HEADINGS.match(heading), f"{heading!r} not junk")
+
+
+class TestSchemaIngredientsWithMarkupSteps(unittest.TestCase):
+    """norwayseafoods.com publishes recipeIngredient in JSON-LD but no
+    recipeInstructions, so the ingredients used to come from the markup copy:
+    div rows that arrived as "1 stk 1 Norway Seafoods Torskeloin"."""
+
+    CARD = """<html><head><script type="application/ld+json">
+      {"@context":"https://schema.org/","@type":"Recipe",
+       "name":"Ovnsbakt torsk",
+       "recipeIngredient":["1 stk torskefilet","2 stk gulrot","1 ss smør"]}
+    </script></head><body><div class="post">
+      <h2>Ingredienser</h2>
+      <ul><li>1 stk 1 torskefilet</li><li>2 stk 1 gulrot</li><li>1 ss 1 smør</li></ul>
+      <h2>Tilberedning</h2>
+      <ol><li>Forvarm ovnen til 180 grader og kutt gulroten i skiver.</li>
+          <li>Legg fisken i en form og hell over den varme sausen.</li></ol>
+    </div></body></html>"""
+
+    def test_ingredients_come_from_the_schema(self):
+        _, ing, steps, tier = recipe.extract(self.CARD)
+        self.assertEqual(tier, "schema ingredients + heading instructions")
+        self.assertEqual(sum(len(g) for _, g in ing), 3)
+
+    def test_no_stuck_number_from_the_markup_rows(self):
+        _, ing, _, _ = recipe.extract(self.CARD)
+        flat = [l for _, g in ing for l in g]
+        self.assertIn("1 stk torskefilet", flat)
+        for line in flat:
+            self.assertNotRegex(line, r"^(?:\d+[,.]?\d*\s+\w+\s+){2}", f"doubled number in {line!r}")
+
+    def test_instructions_still_come_from_the_markup(self):
+        _, _, steps, _ = recipe.extract(self.CARD)
+        self.assertEqual(sum(len(g) for _, g in steps), 2)
+
+    def test_a_complete_schema_is_not_downgraded(self):
+        card = self.CARD.replace(
+            '"recipeIngredient":["1 stk torskefilet","2 stk gulrot","1 ss smør"]}',
+            '"recipeIngredient":["1 stk torskefilet","2 stk gulrot","1 ss smør"],'
+            '"recipeInstructions":[{"@type":"HowToStep","text":"Stek i 20 minutter."},'
+            '{"@type":"HowToStep","text":"Servér varm."}]}',
+        )
+        _, _, steps, tier = recipe.extract(card)
+        self.assertEqual(tier, "schema.org/Recipe")
+        self.assertEqual(sum(len(g) for _, g in steps), 2)
+
+    def test_markup_ingredients_are_used_when_the_schema_has_none(self):
+        card = self.CARD.replace('"recipeIngredient":["1 stk torskefilet","2 stk gulrot","1 ss smør"]',
+                                 '"recipeIngredient":[]')
+        _, ing, _, tier = recipe.extract(card)
+        self.assertEqual(tier, "heading heuristic")
+        self.assertEqual(sum(len(g) for _, g in ing), 3)

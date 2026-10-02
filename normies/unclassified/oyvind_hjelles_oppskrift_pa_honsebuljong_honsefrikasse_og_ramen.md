@@ -2,7 +2,19 @@
 
 ## Ingredients:
 
-- (none found)
+- 3 stk verpehøner
+- 4 l vann
+- 1 ts salt
+- 4 stilker stangselleri
+- 2 stk løk
+- 2 stk gulrot
+- 0.5 stk hvitløk
+- 0.25 stk purre
+- 10 stk hel svart pepper
+- 4 stk nellikspiker
+- 4 stk laurbærblader
+- 5 stilker timian
+- 5 stk champignon
 
 ## TODO:
 
