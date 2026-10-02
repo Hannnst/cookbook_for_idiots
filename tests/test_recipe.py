@@ -6,16 +6,21 @@ Run with:
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+import requests
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import classify  # noqa: E402
 import recipe  # noqa: E402
+import sources  # noqa: E402
 import units  # noqa: E402
 
 FIXTURE = Path(__file__).parent / "fixtures" / "steepbean_earl_grey.html"
@@ -229,6 +234,19 @@ class TestRecipeFilename(unittest.TestCase):
     def test_diacritics_become_ascii(self):
         self.assertEqual(recipe.recipe_filename("Crème Brûlée"), "creme_brulee.md")
 
+    def test_norwegian_letters_are_transliterated_not_dropped(self):
+        self.assertEqual(
+            recipe.recipe_filename("Enkelt surdeigsbrød i form"), "enkelt_surdeigsbrod_i_form.md"
+        )
+        self.assertEqual(
+            recipe.recipe_filename("Rask gryte med grønnsaker og svinekjøtt"),
+            "rask_gryte_med_gronnsaker_og_svinekjott.md",
+        )
+        self.assertEqual(
+            recipe.recipe_filename("Glutenfri julekaker og påskeferdig bløtkake"),
+            "glutenfri_julekaker_og_paskeferdig_blotkake.md",
+        )
+
     def test_digits_are_kept(self):
         self.assertEqual(recipe.recipe_filename("7 Layer Dip"), "7_layer_dip.md")
         self.assertEqual(recipe.recipe_filename("5-Minute Salad"), "5_minute_salad.md")
@@ -316,21 +334,450 @@ class TestVolumeUnitLinting(unittest.TestCase):
 
     def test_large_ml_is_flagged(self):
         self.assertIn(
-            "ml where the house style uses dl: 250 ml",
+            "house style uses dl: write 250 ml as 2.5 dl",
             self._lint("250 ml milk"),
         )
 
     def test_cl_and_l_are_converted_before_comparing(self):
         self.assertIn(
-            "ml where the house style uses dl: 20 cl",
+            "house style uses dl: write 20 cl as 2 dl",
             self._lint("20 cl double cream"),
         )
 
     def test_litre_is_flagged(self):
         self.assertIn(
-            "ml where the house style uses dl: 1.5 l",
+            "house style uses dl: write 1.5 l as 15 dl",
             self._lint("1.5 l stock"),
         )
+
+
+class TestCleanUrl(unittest.TestCase):
+    def test_tracking_params_are_dropped(self):
+        self.assertEqual(
+            sources.clean_url("https://a.com/r?x=1&utm_source=list&utm_medium=x&usg=abc"),
+            "https://a.com/r?x=1",
+        )
+
+    def test_fragment_is_dropped(self):
+        self.assertEqual(sources.clean_url("https://a.com/r#ingredients"), "https://a.com/r")
+
+    def test_meaningful_query_survives(self):
+        self.assertEqual(
+            sources.clean_url("https://a.com/r?m=1&id=7"),
+            "https://a.com/r?m=1&id=7",
+        )
+
+    def test_non_http_is_rejected(self):
+        for bad in ("mailto:a@b.com", "ftp://a.com/x", "javascript:void(0)", "", "   "):
+            self.assertEqual(sources.clean_url(bad), "")
+
+
+class TestDedupe(unittest.TestCase):
+    def test_order_is_preserved_and_first_title_wins(self):
+        pairs = [("https://a.com/1", "First"), ("https://a.com/2", None), ("https://a.com/1", "Second")]
+        self.assertEqual(sources.dedupe(pairs), [("https://a.com/1", "First"), ("https://a.com/2", None)])
+
+    def test_urls_differing_only_by_tracking_are_one_entry(self):
+        pairs = [("https://a.com/1?utm_source=x", "T"), ("https://a.com/1", "T2")]
+        self.assertEqual(len(sources.dedupe(pairs)), 1)
+
+    def test_unusable_urls_are_dropped(self):
+        self.assertEqual(sources.dedupe([("mailto:a@b.com", None), ("https://a.com/", "X")]),
+                         [("https://a.com/", "X")])
+
+
+class TestGoogleSavedList(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        fixture = Path(__file__).parent / "fixtures" / "google_saved_list.html"
+        cls.pairs = sources.links_from_google_list(fixture.read_text(encoding="utf-8"))
+
+    def test_finds_every_saved_item(self):
+        self.assertEqual(
+            [url for url, _ in self.pairs],
+            [
+                "https://www.matprat.no/oppskrifter/kos/brent-baskisk-ostekake/",
+                "https://nuftenoft.wordpress.com/2009/02/24/saftig-svinestek/",
+                "https://www.godt.no/mat/oppskrifter/kake/glutenfrie-julekaker",
+            ],
+        )
+
+    def test_title_comes_from_aria_label(self):
+        self.assertEqual(self.pairs[0][1], "Brent baskisk ostekake")
+
+    def test_title_falls_back_to_anchor_text_and_strips_site_name(self):
+        self.assertEqual(self.pairs[1][1], "Saftig svinestek med søor")
+
+    def test_untitled_item_is_none_not_empty_string(self):
+        self.assertIsNone(self.pairs[2][1])
+
+    def test_tracking_params_stripped(self):
+        self.assertNotIn("utm_source", self.pairs[1][0])
+        self.assertNotIn("usg", self.pairs[1][0])
+
+    def test_duplicate_item_is_collapsed(self):
+        self.assertEqual(len(self.pairs), 3)
+
+    def test_google_navigation_links_are_not_items(self):
+        self.assertFalse(any("google.no/save" in url for url, _ in self.pairs))
+
+
+class TestTextFileSource(unittest.TestCase):
+    def _write(self, body):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        path = Path(tmp.name) / "links.txt"
+        path.write_text(body, encoding="utf-8")
+        return path
+
+    def test_reads_urls_and_ignores_comments_and_blanks(self):
+        path = self._write("# my list\n\nhttps://a.com/1\n  \nhttps://a.com/2 # inline\n")
+        self.assertEqual(
+            sources.links_from_text_file(path),
+            [("https://a.com/1", None), ("https://a.com/2", None)],
+        )
+
+    def test_missing_file_is_a_clear_error(self):
+        with self.assertRaises(sources.SourceError) as caught:
+            sources.discover("/nonexistent/links.txt")
+        self.assertIn("No such file", str(caught.exception))
+
+
+class TestDiscoverErrors(unittest.TestCase):
+    LOGIN_PAGE = "<html><body><a href='https://accounts.google.com'>Sign in</a></body></html>"
+
+    def test_private_list_explains_how_to_proceed(self):
+        with self.assertRaises(sources.SourceError) as caught:
+            sources.discover("https://www.google.com/collections/s/list/abc", html=self.LOGIN_PAGE)
+        message = str(caught.exception)
+        self.assertIn("private", message)
+        self.assertIn("-x links.txt", message)
+
+    def test_page_that_is_not_a_saved_list(self):
+        with self.assertRaises(sources.SourceError) as caught:
+            sources.discover("https://example.com/blog", html="<html><body><p>hi</p></body></html>")
+        self.assertIn("No saved items", str(caught.exception))
+
+
+class TestClassify(unittest.TestCase):
+    """Every case here is a real Norwegian title from a saved list, and every one
+    of them was a bug before it was a test."""
+
+    def _folder(self, title):
+        return classify.classify_category(title)[0]
+
+    def test_compound_words_still_match(self):
+        # "gryte" and "kylling" are both buried inside one compound noun.
+        self.assertEqual(self._folder("Enkel kyllinggryte med kikerter"), "dinner")
+        self.assertEqual(self._folder("Makaronigrateng med kylling og brokkoli"), "dinner")
+
+    def test_juicy_is_not_juice(self):
+        # "Saftig" (juicy) contains "saft" (juice); a substring match filed
+        # whole stews under drinks.
+        self.assertEqual(self._folder("Saftig svinestek med søor i leirgryte."), "dinner")
+
+    def test_cheesecake_is_not_steak(self):
+        # "ostekake" contains "stek".
+        self.assertEqual(self._folder("Brent baskisk ostekake"), "dessert")
+
+    def test_school_start_is_not_a_tart(self):
+        self.assertEqual(self._folder("Skolestart - MatPrat"), "unclassified")
+
+    def test_hamburger_bread_is_bread_not_a_burger(self):
+        self.assertEqual(self._folder("Hamburgerbrød"), "bread")
+
+    def test_bread_and_dessert_conflict_stays_unclassified(self):
+        # Chocolate banana bread: genuinely two categories.
+        self.assertEqual(self._folder("GLUTENFRITT BANANBRØD MED SJOKOLADE"), "unclassified")
+
+    def test_non_recipe_titles_are_unclassified(self):
+        for title in ("Alt i en form", "Boeuf Bourguignon - Klassisk fransk", ""):
+            self.assertEqual(self._folder(title), "unclassified")
+
+    def test_confidence_is_zero_when_unclassified_by_score(self):
+        self.assertEqual(classify.classify_category("Alt i en form")[1], 0.0)
+
+    def test_english_titles_are_handled(self):
+        self.assertEqual(self._folder("Butter chicken"), "dinner")
+        self.assertEqual(self._folder("Classic chocolate chip cookies"), "dessert")
+
+    def test_target_path_lands_in_normies(self):
+        path = classify.target_path("Enkel kyllinggryte med kikerter", Path("/repo"))
+        self.assertEqual(
+            path, Path("/repo/normies/dinner/enkel_kyllinggryte_med_kikerter.md")
+        )
+
+    def test_folder_override_wins(self):
+        path = classify.target_path("Enkel kyllinggryte", Path("/repo"), folder_override="unclassified")
+        self.assertEqual(path.parent, Path("/repo/normies/unclassified"))
+
+
+class TestBatchMode(unittest.TestCase):
+    """Two or more URLs run as a batch and land under normies/."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.cwd = os.getcwd()
+        os.chdir(self.tmp.name)
+        self.addCleanup(os.chdir, self.cwd)
+        self.real_fetch = recipe.fetch
+        self.addCleanup(setattr, recipe, "fetch", self.real_fetch)
+
+        def fake_fetch(url):
+            if "missing" in url:
+                raise requests.HTTPError("404 Client Error")
+            if "empty" in url:
+                return "<html><body><p>nothing here</p></body></html>"
+            titles = {
+                "https://a.com/dinner": "Butter chicken",
+                "https://a.com/one": "Butter chicken",
+                "https://b.com/two": "Chocolate cake",
+                "https://b.com/three": "Chocolate cake",
+                "https://b.com/dessert": "Chocolate cake",
+            }
+            title = titles.get(url, "Chocolate cake")
+            return (
+                f"<!doctype html><html><head><title>x</title></head><body>"
+                f'<div class="entry-content"><h1>{title}</h1>'
+                f"<h2>Ingredients</h2><ul><li>1 tablespoon olive oil</li></ul>"
+                f"<h2>Instructions</h2><ol><li>Heat the oil until hot and add the vegetables.</li></ol>"
+                f"</div></body></html>"
+            )
+
+        recipe.fetch = fake_fetch
+
+    def _run(self, argv):
+        return recipe.run(recipe.build_parser().parse_args(argv))
+
+    def test_two_urls_write_into_normies_by_category(self):
+        self._run(["https://a.com/dinner", "https://b.com/dessert", "--delay", "0"])
+        self.assertTrue(os.path.exists("normies/dinner/butter_chicken.md"))
+        self.assertTrue(os.path.exists("normies/dessert/chocolate_cake.md"))
+
+    def test_single_url_does_not_touch_normies(self):
+        self._run(["https://a.com/dinner", "--no-open"])
+        self.assertTrue(os.path.exists("butter_chicken.md"))
+        self.assertFalse(os.path.exists("normies"))
+
+    def test_same_title_twice_gets_a_numbered_name(self):
+        self._run(["https://b.com/one", "https://b.com/two", "--delay", "0"])
+        self.assertTrue(os.path.exists("normies/dessert/chocolate_cake.md"))
+        self.assertTrue(os.path.exists("normies/dessert/chocolate_cake_2.md"))
+
+    def test_one_failure_does_not_abort_the_batch(self):
+        code = self._run(
+            ["https://missing.com/x", "https://a.com/dinner", "https://empty.com/y", "--delay", "0"]
+        )
+        self.assertEqual(code, 1)  # one page failed hard, so the run reports failure
+        self.assertTrue(os.path.exists("normies/dinner/butter_chicken.md"))
+
+    def test_hard_failure_gives_exit_code_one(self):
+        self.assertEqual(self._run(["https://missing.com/x", "--delay", "0"]), 1)
+
+    def test_existing_file_is_skipped_on_a_second_run(self):
+        self._run(["https://a.com/dinner", "--delay", "0"])
+        self._run(["https://a.com/dinner", "--delay", "0"])
+        self.assertFalse(os.path.exists("normies/dinner/chicken_dinner_2.md"))
+
+    def test_refresh_overwrites_in_place(self):
+        self._run(["https://a.com/dinner", "https://b.com/two", "--delay", "0"])
+        Path("normies/dinner/butter_chicken.md").write_text("STALE", encoding="utf-8")
+        self._run(["https://a.com/dinner", "https://b.com/two", "--delay", "0", "--refresh"])
+        self.assertIn("# Butter chicken", Path("normies/dinner/butter_chicken.md").read_text())
+        self.assertFalse(os.path.exists("normies/dinner/chicken_dinner_2.md"))
+
+    def test_output_flag_is_rejected_for_a_batch(self):
+        self.assertEqual(self._run(["https://a.com/x", "https://b.com/y", "-o", "out.md"]), 1)
+
+    def test_folder_override(self):
+        self._run(["https://a.com/dinner", "https://b.com/two",
+                   "--folder", "unclassified", "--delay", "0"])
+        self.assertTrue(os.path.exists("normies/unclassified/butter_chicken.md"))
+
+    def test_folder_override_is_rejected_for_a_single_url(self):
+        self.assertEqual(
+            self._run(["https://a.com/dinner", "--folder", "unclassified"]), 1
+        )
+
+    def test_limit_caps_the_batch(self):
+        self._run(["https://a.com/one", "https://b.com/two", "https://b.com/three",
+                   "--delay", "0", "--limit", "2"])
+        self.assertTrue(os.path.exists("normies/dinner/butter_chicken.md"))
+        self.assertFalse(os.path.exists("normies/dessert/chocolate_cake_2.md"))
+
+    def test_recipe_without_instructions_is_not_written(self):
+        self.assertEqual(self._run(["https://empty.com/y"]), 1)
+        self.assertEqual(os.listdir("."), [])
+
+    def test_recipe_without_instructions_does_not_stop_the_batch(self):
+        code = self._run(["https://empty.com/y", "https://a.com/dinner", "--delay", "0"])
+        self.assertEqual(code, 0)
+        self.assertTrue(os.path.exists("normies/dinner/butter_chicken.md"))
+        self.assertEqual(sorted(os.listdir("normies")), ["dinner"])
+
+    def test_dry_run_fetches_nothing_and_writes_nothing(self):
+        code = self._run(["https://a.com/dinner", "https://b.com/x", "--dry-run"])
+        self.assertEqual(code, 0)
+        self.assertEqual(os.listdir("."), [])
+
+
+class TestNextFreeName(unittest.TestCase):
+    def test_first_duplicate_gets_underscore_two(self):
+        path = Path("normies/dessert/kake.md")
+        self.assertEqual(recipe.next_free_name(path, {path}), Path("normies/dessert/kake_2.md"))
+
+    def test_skips_names_already_taken(self):
+        base = Path("normies/dessert/kake.md")
+        taken = {base, Path("normies/dessert/kake_2.md")}
+        self.assertEqual(recipe.next_free_name(base, taken), Path("normies/dessert/kake_3.md"))
+
+    def test_unrelated_name_is_returned_unchanged(self):
+        self.assertEqual(
+            recipe.next_free_name(Path("a/b.md"), {Path("a/c.md")}), Path("a/b.md")
+        )
+
+
+class TestLintAllIncludesNormies(unittest.TestCase):
+    def test_normies_are_walked_recursively(self):
+        root = Path(tempfile.mkdtemp())
+        self.addCleanup(lambda: None)
+        (root / "dinner").mkdir()
+        (root / "normies" / "dinner").mkdir(parents=True)
+        (root / "bread").mkdir()
+        for path in ("dinner/a.md", "bread/b.md", "normies/dinner/c.md", "normies/dinner/d.md"):
+            (root / path).write_text("x", encoding="utf-8")
+        found = [str(p.relative_to(root)) for p in recipe.recipe_folder_paths(root)]
+        self.assertEqual(sorted(found), ["bread/b.md", "dinner/a.md",
+                                         "normies/dinner/c.md", "normies/dinner/d.md"])
+
+
+class TestEscapedEntities(unittest.TestCase):
+    """godfisk.no and friends put escaped HTML inside the JSON-LD strings.
+
+    Nothing decodes entities inside a <script> element, so these used to reach
+    the recipe file as `p&aring; 200 &deg;C` and the temperature converter
+    never saw them.
+    """
+
+    def _schema_page(self, payload):
+        return (
+            '<!doctype html><html><head><title>x</title>'
+            f'<script type="application/ld+json">{payload}</script>'
+            '</head><body><h1>Sei med rotgr&oslash;nnsaker</h1></body></html>'
+        )
+
+    def test_entities_in_plain_string_instructions_are_decoded(self):
+        payload = json.dumps(
+            {
+                "@type": "Recipe",
+                "name": "Sei med dillsaus",
+                "recipeIngredient": ["600 g seifilet"],
+                "recipeInstructions": [
+                    "Sett stekeovnen p&aring; 200 &deg;C. "
+                    "Skj&aelig;r seien, server med poteter.&nbsp;"
+                ],
+            }
+        )
+        page = self._schema_page(payload)
+        _, _, steps, tier = recipe.extract(page)
+        self.assertEqual(tier, "schema.org/Recipe")
+        self.assertEqual(len(steps), 1)
+        self.assertEqual(
+            steps[0][1][0], "Sett stekeovnen på 200 °C. Skjær seien, server med poteter."
+        )
+
+    def test_temperature_is_converted_once_entities_are_decoded(self):
+        payload = json.dumps(
+            {
+                "@type": "Recipe",
+                "name": "Torsk i ovn",
+                "recipeIngredient": ["600 g torsk"],
+                "recipeInstructions": ["Sett stekeovnen p&aring; 200 &deg;C."],
+            }
+        )
+        # Mirror the CLI pipeline: extract, convert, render.
+        title, ingredients, steps, _ = recipe.extract(self._schema_page(payload))
+        converted = [(h, [recipe.convert_step(line)[0] for line in lines]) for h, lines in steps]
+        rendered = recipe.render(title, ingredients, converted)
+        self.assertIn("200°C (392°F)", rendered)
+        self.assertNotIn("&deg;", rendered)
+
+    def test_entities_in_name_and_ingredients_are_decoded(self):
+        payload = json.dumps(
+            {
+                "@type": "Recipe",
+                "name": "Brent b&aring;skisk ostekake",
+                "recipeIngredient": ["200 g sm&oslash;r", "1 ss vaniljesukker"],
+                "recipeInstructions": ["Stek i 35 minutter."],
+            }
+        )
+        title, ingredients, _, _ = recipe.extract(self._schema_page(payload))
+        self.assertEqual(title, "Brent båskisk ostekake")
+        self.assertEqual(ingredients[0][1], ["200 g smør", "1 ss vaniljesukker"])
+
+    def test_entities_in_howtostep_dict_text_are_decoded(self):
+        payload = json.dumps(
+            {
+                "@type": "Recipe",
+                "name": "Kake",
+                "recipeIngredient": ["2 egg"],
+                "recipeInstructions": [
+                    {
+                        "@type": "HowToStep",
+                        "text": "Sett ovnen p&aring; 180 &deg;C og r&oslash;r sm&oslash;ret.",
+                    }
+                ],
+            }
+        )
+        _, _, steps, _ = recipe.extract(self._schema_page(payload))
+        self.assertEqual(steps[0][1][0], "Sett ovnen på 180 °C og rør smøret.")
+
+    def test_nbsp_becomes_a_plain_space(self):
+        page = (
+            '<!doctype html><html><body><div class="entry-content">'
+            "<h1>Kake</h1><h2>Ingredients</h2><ul><li>2 egg</li></ul>"
+            "<h2>Instructions</h2><ol><li>R&oslash;r sm&oslash;ret godt "
+            "og hvil i ti minutter her p&aring; siden.</li></ol></div></body></html>"
+        )
+        _, _, steps, tier = recipe.extract(page)
+        self.assertEqual(tier, "heading heuristic")
+        self.assertEqual(steps[0][1][0], "Rør smøret godt og hvil i ti minutter her på siden.")
+
+    def test_entities_are_unescaped_only_once(self):
+        # A genuinely doubled entity must not collapse all the way to "&".
+        self.assertEqual(recipe.clean_text("kongen &amp;amp; megleren"), "kongen &amp; megleren")
+        self.assertEqual(recipe.clean_text("salt &amp; pepper"), "salt & pepper")
+
+
+class TestCharsetDecoding(unittest.TestCase):
+    """nrk.no sends a bare `text/html`, and requests would guess ISO-8859-1."""
+
+    class FakeResponse:
+        def __init__(self, content, encoding, apparent="utf-8"):
+            self.content = content
+            self.encoding = encoding
+            self.apparent_encoding = apparent
+
+        @property
+        def text(self):
+            return self.content.decode(self.encoding or "utf-8", errors="replace")
+
+    def test_meta_charset_wins_when_the_header_omits_one(self):
+        body = '<html><head><meta charset="utf-8"></head><body>smør</body></html>'
+        decoded = recipe.decode_response(self.FakeResponse(body.encode("utf-8"), "ISO-8859-1"))
+        self.assertIn("smør", decoded)
+
+    def test_norwegian_letters_survive_the_iso8859_default(self):
+        body = "<html><body>også, blåbærsyltetøy</body></html>"
+        decoded = recipe.decode_response(self.FakeResponse(body.encode("utf-8"), "ISO-8859-1"))
+        self.assertIn("også, blåbærsyltetøy", decoded)
+        self.assertNotIn("Ã", decoded)
+
+    def test_explicit_latin1_header_is_trusted(self):
+        body = "<html><body>sm\xf8r</body></html>".encode("latin-1")
+        decoded = recipe.decode_response(self.FakeResponse(body, "ISO-8859-1"))
+        self.assertIn("sm\xf8r", decoded)
 
 
 class TestSchemaOrg(unittest.TestCase):
