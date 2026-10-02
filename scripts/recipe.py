@@ -78,6 +78,10 @@ _JUNK_SELECTORS = [
 # Headings that are boilerplate rather than recipe content.
 _JUNK_HEADINGS = re.compile(
     r"^(equipment|tools|kit|what you(?:'|’)ll need|nutrition|notes|reviews?|comments?|"
+    # "Tips til utstyr" and "Utstyr du trenger" are equipment headings whose
+    # first word is not "utstyr", so the anchor needs the prefix spelled out.
+    r"tips til (?:utstyr|verktøy)|(?:utstyr|verktøy)(?:\s+du\s+trenger)?|"
+    r"equipment(?:\s+you(?:'|’)ll\s+need)?|tools(?:\s+you(?:'|’)ll\s+need)?|"
     r"related|you may also like|more recipes|conclusion|wrap up|final thoughts|"
     r"faq|frequently asked questions|toc|table of contents|jump to|shop|"
     r"ingredients you'll need|about (?:the )?author|leave a comment|"
@@ -87,15 +91,39 @@ _JUNK_HEADINGS = re.compile(
 )
 
 _INGREDIENT_HEADINGS = re.compile(
-    r"^(ingredients?|what you(?:'|’)ll need|you need|shopping list|what you need|"
-    r"ingredienser|ingredienslista|det du trenger)\b",
+    r"^(?:ingredients?|ingredient list|ingredients list|recipe ingredients|"
+    r"what you(?:'|’)ll need|you(?:'|’)ll need|you need|shopping list|what you need|"
+    r"what to buy|you will need|"
+    r"ingredienser|ingredienslista|ingredienser til|det du trenger|du trenger|"
+    r"hva du trenger|du trenger følgende)\b",
     re.I,
 )
 _METHOD_HEADINGS = re.compile(
-    r"^(instructions?|directions?|method|steps?|preparation|procedure|how to make|"
-    r"instructions$|making it|let(?:'|’)s (?:make|bake|cook)|step[- ]by[- ]step|"
-    r"method$|what to do|process|"
-    r"fremgangsmåte|fremgangs måte|tilberedning|slik gjør du|så gjør du det)\b",
+    r"^(?:instructions?|instructions for|cooking instructions|directions?|"
+    r"directions for|method|steps?|preparation|preparing|procedure|"
+    r"how to make|how to prepare|how it(?:'|’)s made|how to cook|"
+    r"making it|let(?:'|’)s (?:make|bake|cook)|step[- ]by[- ]step|"
+    r"what to do|process|"
+    r"fremgangsmåte|framgangsmåte|fremgangs måte|fremgang|tilberedning|"
+    r"slik gjør du|så gjør du det|slik lager du|slik lager du det|sådan|"
+    r"her er hvordan du)\b",
+    re.I,
+)
+
+# Some blogs label the blocks with a bare paragraph instead of a heading
+# ("Du trenger" / "Slik gjør du" on glutenfrihet.no). Matching the label words
+# rather than any short paragraph keeps prose out of it.
+# "Bunn:" / "Ostefromasj:" introduce an ingredient group inside one paragraph.
+_GROUP_LABEL = re.compile(r"^[^\d:]{1,40}:$")
+
+_LABEL_PARAGRAPH = re.compile(
+    r"^(?:du trenger(?:\s+(?:dette|følgende))?|hva du trenger|"
+    r"you(?:'|’)ll need|you need(?:\s+this)?|what to buy|"
+    r"ingredients?|ingredienser|ingredienslista|"
+    r"slik gjør du(?:\s+det)?|så gjør du(?:\s+det)?|slik lager du(?:\s+det)?|"
+    r"fremgangsmåte|framgangsmåte|tilberedning|"
+    r"how to(?: make it)?|method|instructions|directions|steps|"
+    r"utstyr|verktøy|equipment|tools)\s*:?$",
     re.I,
 )
 
@@ -111,13 +139,27 @@ _JUNK_LINE = re.compile(
     r"photo of|author|updated on|published on|posted (?:on|by)|share this|"
     r"facebook|instagram|pinterest|twitter|linkedin|leave a comment|"
     r"cancel reply|your email address|privacy policy|terms (?:and|of) conditions|"
-    r"all rights reserved|copyright|disclaimer|cookie|skip to content|"
-    # Bare recipe-widget buttons that sit on their own line.
-    r"save|print|share|pin it|pin|embed|jump to recipe|toc|home|next|previous)",
+    r"all rights reserved|copyright|disclaimer|\bcookie\b|skip to content|"
+    # Bare recipe-widget buttons that sit on their own line. Bounded for the
+    # same reason: "cookies and cream" is an ingredient, not a cookie notice.
+    r"\bsave\b|\bprint\b|\bshare\b|pin it|\bpin\b|\bembed\b|jump to recipe|"
+    r"\btoc\b|\bhome\b|\bnext\b|\bprevious\b|"
+    r"save recipe|print recipe|share on|copy link|sponsored|promoted|partner link|"
+    # Norwegian sites label the same widgets in Norwegian. Each alternative is
+    # bounded: this is a prefix match, and a bare "del" would swallow
+    # "Delicious" and "Delightfully chewy" from the middle of a real recipe.
+    r"\bskriv ut\b|\blagre\b|\bdel(?:\s+denne)?\s*$|\bkommenter\b|\bneste\b|"
+    r"\bforrige\b|\bhjem\b|\bfølg oss\b|\babonner\b|\bmeld deg på\b|"
+    r"\btil toppen\b|\bles mer\b|\bklikk her\b|\breklame\b|"
+    r"\bdenne artikkelen\b|\brelaterte oppskrifter\b)",
     re.I,
 )
 
-_SKIP_SMALL = re.compile(r"^(?:ok|okay|yes|no|hi|hello|thanks|thank you|dear\b|note:?|tip:?|update:)", re.I)
+_SKIP_SMALL = re.compile(
+    r"^(?:ok|okay|yes|no|hi|hello|thanks|thank you|dear\b|note:?|tip:?|update:|"
+    r"nb:?|tips?:|hint:|psst|morsomt)",
+    re.I,
+)
 
 # Section openers that describe the section rather than instruct or list.
 _INTRO_BLURB = re.compile(
@@ -130,7 +172,11 @@ _INTRO_BLURB = re.compile(
     r"the (?:process|method) involves\b|"
     r"(?:please )?note:?\s|"
     r"whether you(?:['’]| a)re\b|"
-    r"let['’]?s\b)",
+    r"let['’]?s\b|"
+    # Norwegian
+    r"i denne oppskriften\b|før vi begynner\b|her er hvordan\b|"
+    r"vi (?:skal|går|har)\b|du (?:trenger|vil) følgende\b|"
+    r"følgende (?:ting|ingredienser)\b)",
     re.I,
 )
 
@@ -171,12 +217,29 @@ def strip_anchor_spans(node: Tag) -> None:
             span.decompose()
 
 
+def holds_the_recipe(node: Tag) -> bool:
+    """True when a node looks like the recipe itself rather than a widget.
+
+    A junk selector must never delete the recipe. `[class*="recipe-card"]` was
+    meant for related-recipe widgets in a sidebar, but it also matches the main
+    card on detgladekjokken.no (`wp-block-wpzoom-recipe-card-block-recipe-card`)
+    and took the whole recipe with it. Checking for the block's own headings is
+    structural, so it protects the recipe whatever the theme calls its classes.
+    """
+    for heading in node.select("h1, h2, h3, h4, h5, h6"):
+        text = clean_text(heading)
+        if _INGREDIENT_HEADINGS.match(text) or _METHOD_HEADINGS.match(text):
+            return True
+    return False
+
+
 def drop_junk(root: Tag) -> None:
     """Remove boilerplate inside ``root``.
 
     WordPress themes put long class lists on <body> ("right-sidebar",
     "postid-1837"), so a substring selector can otherwise match the container
-    that holds the entire recipe. Never decompose a structural element.
+    that holds the entire recipe. Never decompose a structural element, and
+    never one that holds the recipe itself.
     """
     for selector in _JUNK_SELECTORS:
         for node in root.select(selector):
@@ -184,6 +247,8 @@ def drop_junk(root: Tag) -> None:
                 continue
             classes = node.attrs.get("class") or [] if node.attrs else []
             if len(classes) >= 8:
+                continue
+            if holds_the_recipe(node):
                 continue
             node.decompose()
     # Unwrap affiliate links, keeping their text: sites wrap the ingredient name
@@ -274,6 +339,18 @@ class Section:
         self.items: list[tuple[str, str]] = []   # (kind, text); kind is list/para/table
 
 
+_BLOCK_TAGS = ("div", "section", "p", "li", "table", "ul", "ol",
+               "h1", "h2", "h3", "h4", "h5", "h6", "article", "tr")
+
+
+def _is_block_list(node: Tag) -> bool:
+    """True when a wrapper holds several sibling blocks, i.e. a list without a
+    list tag. Three is the point where a single row stops looking like one."""
+    blocks = [child for child in node.find_all(recursive=False)
+              if isinstance(child, Tag) and child.name.lower() in _BLOCK_TAGS]
+    return len(blocks) >= 3
+
+
 def walk_blocks(root: Tag) -> list[tuple[str, str, int | None]]:
     """Flatten the content root into (tag, text, heading_level) in document order.
 
@@ -317,11 +394,35 @@ def walk_blocks(root: Tag) -> list[tuple[str, str, int | None]]:
             elif name in ("ul", "ol"):
                 emit_list(child, out)
             elif name == "p":
+                for line in lines_with_breaks(child):
+                    # A bare "Du trenger" or "Slik gjør du" is a section label
+                    # that the author typed as a paragraph, and "Bunn:" introduces
+                    # an ingredient group. Promote both to headings so the
+                    # ingredient/method finder sees them like any other.
+                    if len(line) <= 60 and _LABEL_PARAGRAPH.match(line):
+                        out.append(("h", tidy_heading(line), 3))
+                    elif _GROUP_LABEL.match(line):
+                        out.append(("h", line.rstrip(":").strip(), 4))
+                    else:
+                        out.append(("p", line, None))
+            elif name == "tr":
+                # One item per row: food blogs list ingredients as table rows
+                # (<tr class="ingredient"><td>600-800 g</td><td>laksefilet</td></tr>),
+                # and a table has no ul/ol/p to recurse into, so without this the
+                # whole table collapses into one merged line.
                 text = clean_text(child)
                 if text:
-                    out.append(("p", text, None))
-            elif name in ("div", "section", "table", "figure"):
-                if child.find(["ul", "ol", "p"]) or child.name == "table":
+                    out.append(("table", text, None))
+            elif name in ("div", "section", "table", "figure", "tbody", "thead", "tfoot"):
+                # Recurse when the child holds real blocks. A <table> counts even
+                # without ul/ol/p, because food blogs list ingredients as rows.
+                if child.find(["ul", "ol", "p", "table", "tr"]) or child.name == "table":
+                    emit(child)
+                elif _is_block_list(child):
+                    # Modern themes render each ingredient as its own div
+                    # (denstoltehane.no: 7 x "ingredienser__data--row"). With no
+                    # list tag anywhere, collapsing the wrapper merged the whole
+                    # recipe onto one line, so recurse and read the rows.
                     emit(child)
                 else:
                     text = clean_text(child)
@@ -351,20 +452,38 @@ def group_sections(blocks: list[tuple[str, str, int | None]]) -> list[Section]:
     return sections
 
 
+def _first_section(sections: list[Section], pattern: re.Pattern[str]) -> int | None:
+    """Index of the section a heading pattern starts, preferring an <h2>.
+
+    Plenty of food blogs mark up the recipe block as <h3> (trinesmatblogg.no,
+    detgladekjokken.no both do), so an h3 has to count too -- but an h2 match
+    still wins, because an h3 "Ingredients" is more likely to be a subsection
+    of something else than the top of the recipe.
+    """
+    fallback = None
+    for index, section in enumerate(sections):
+        if not pattern.match(section.title):
+            continue
+        if section.level == 2:
+            return index
+        if fallback is None and section.level == 3:
+            fallback = index
+    return fallback
+
+
 def find_ingredient_sections(sections: list[Section]) -> list[Section]:
     """The ingredient block, including any 'For the cake'-style sub-headings."""
-    start = None
-    for index, section in enumerate(sections):
-        if section.level == 2 and _INGREDIENT_HEADINGS.match(section.title):
-            start = index
-            break
+    start = _first_section(sections, _INGREDIENT_HEADINGS)
     if start is None:
         return []
     collected = [sections[start]]
     for section in sections[start + 1:]:
+        # Stop at a method or junk heading even when it sits at the same level:
+        # sites that mark the whole recipe up as <h3> put "Fremgangsmåte" beside
+        # "Ingredienser", and it must not be swallowed as a subsection.
+        if _METHOD_HEADINGS.match(section.title) or _JUNK_HEADINGS.match(section.title):
+            break
         if section.level <= 2:
-            if _JUNK_HEADINGS.match(section.title) or _METHOD_HEADINGS.match(section.title):
-                break
             if not _INGREDIENT_HEADINGS.match(section.title):
                 break
             collected.append(section)
@@ -374,20 +493,22 @@ def find_ingredient_sections(sections: list[Section]) -> list[Section]:
 
 
 def find_method_sections(sections: list[Section]) -> list[Section]:
-    start = None
-    for index, section in enumerate(sections):
-        if section.level == 2 and _METHOD_HEADINGS.match(section.title):
-            start = index
-            break
+    start = _first_section(sections, _METHOD_HEADINGS)
     if start is None:
         return []
     collected = [sections[start]]
     for section in sections[start + 1:]:
-        if section.level <= 2:
-            if _JUNK_HEADINGS.match(section.title):
-                continue
+        # The mirror image of find_ingredient_sections: a page can repeat its
+        # ingredient block after the method (print view, inline widget), and
+        # that copy must not be read as the tail of the instructions.
+        if _INGREDIENT_HEADINGS.match(section.title) or _JUNK_HEADINGS.match(section.title):
             break
-        collected.append(section)
+        if section.level <= 2:
+            if not _METHOD_HEADINGS.match(section.title):
+                break
+            collected.append(section)
+        else:
+            collected.append(section)
     return collected
 
 
@@ -414,6 +535,35 @@ def prose_to_steps(text: str) -> str:
                   lambda m: m.group(1) + m.group(2).capitalize(), text, flags=re.I)
     text = re.sub(r"\s+", " ", text).strip()
     return text
+
+
+def lines_with_breaks(node: Tag) -> list[str]:
+    """Text lines of a node, treating <br> as a line break.
+
+    Blogs that paste from a document put every ingredient on its own <br>
+    line of a single paragraph ("<strong>Bunn:</strong><br/> 250 g kjeks<br/>
+    100 g smor"). clean_text() collapses that into one line, which then reads
+    as a single ingredient holding the whole recipe.
+    """
+    parts: list[str] = []
+    current: list[str] = []
+    for descendant in node.descendants:
+        if isinstance(descendant, Tag) and descendant.name == "br":
+            parts.append(" ".join(current))
+            current = []
+            continue
+        if descendant.parent and descendant.parent.name in ("br", "style", "script"):
+            continue
+        if isinstance(descendant, NavigableString):
+            current.append(str(descendant))
+    parts.append(" ".join(current))
+    lines = [clean_text(part) for part in parts]
+    return [line for line in lines if line]
+
+
+def strip_leading_number(text: str) -> str:
+    """Drop "1." / "Step 2:" from a step the author already numbered in prose."""
+    return re.sub(r"^\s*(?:step\s*)?\d+[.):]\s*", "", text, flags=re.I).strip()
 
 
 def tidy_heading(text: str) -> str:
@@ -452,7 +602,9 @@ def ingredient_keyword(line: str) -> str | None:
     """The last significant word of an ingredient line, used to find it in a step."""
     text = re.sub(r"^[\d\s.,/\-½¼¾⅓⅔⅛⅜⅝⅞+()to-]+", "", line).lower()
     text = re.sub(rf"\b(?:{_NOISE_WORDS})\b", " ", text)
-    words = [w for w in re.findall(r"[a-z]+", text) if len(w) > 3]
+    # [^\W\d_] is a Unicode letter, so "rømme" and "kjøtt" survive; a plain [a-z]
+    # silently reduced them to "mme" and killed the conflict check in Norwegian.
+    words = [w for w in re.findall(r"[^\W\d_]+", text, re.UNICODE) if len(w) > 3]
     if not words:
         return None
     return words[-1]
@@ -542,6 +694,14 @@ def render(title: str, ingredient_groups: Groups, step_groups: Groups) -> str:
 
 def from_schema(soup: BeautifulSoup) -> tuple[str, Groups, Groups] | None:
     """Tier 1: JSON-LD schema.org/Recipe, plus microdata."""
+    name, groups_ing, groups_steps = schema_parts(soup)
+    if groups_ing and groups_steps:
+        return (name, groups_ing, groups_steps)
+    return None
+
+
+def schema_parts(soup: BeautifulSoup) -> tuple[str, Groups, Groups]:
+    """Whatever JSON-LD/microdata offers, even when only half of it is there."""
     groups_ing: Groups = []
     groups_steps: Groups = []
     name = ""
@@ -615,9 +775,42 @@ def from_schema(soup: BeautifulSoup) -> tuple[str, Groups, Groups] | None:
         if nodes:
             groups_steps.append(("", [clean_text(n) for n in nodes]))
 
-    if groups_ing and groups_steps:
-        return (name, groups_ing, groups_steps)
-    return None
+    return (name, groups_ing, groups_steps)
+
+
+# Units a line can be measured in, in both languages: metric, imperial, spoons
+# and the count words recipes actually use. The trailing empty alternative this
+# pattern used to have made every numbered line "measured", which reduced the
+# adjacency check below to "does this line start with a number".
+_INGREDIENT_UNITS = (
+    r"g|kg|mg|ml|dl|cl|l|oz|lb|lbs|cups?|tbsp|tbsps?|tbs|tsp|stick|sticks?|"
+    r"ss|ts|stk|st|pcs?|piece|pieces|can|cans|tin|tins|package|packages|pkg|pk|"
+    r"clove|cloves|slice|slices|bunch|bunches|sprig|sprigs|handful|handfuls|"
+    r"pinch|pinches|dash|dashes|egg|eggs|"
+    r"nekk|bunt|fedd|skive|skiver|klump|klumper|dråpe|tsk|ssk"
+)
+
+_MEASURED_INGREDIENT = re.compile(
+    r"^\s*\d+(?:[.,]\d+)?(?:\s*(?:-|–|to)\s*\d+(?:[.,]\d+)?)?\s*(?:"
+    + _INGREDIENT_UNITS + r")\b"
+    # A bare count is still a quantity: "2 large eggs", "1 onion", "3 stk løk".
+    r"|^\s*\d+(?:[.,]\d+)?\s+[A-Za-zÆØÅæøå][\wÆØÅæøå-]*",
+    re.I,
+)
+
+
+def looks_like_ingredient_rows(items: list[tuple[str, str]]) -> bool:
+    """True when list rows read as measured ingredients rather than prose.
+
+    At least two rows, and a quantity in most of them, so neither a bulleted
+    note list nor prose above the method is mistaken for one.
+    """
+    rows = [text for kind, text in items
+            if kind in ("li", "p", "table") and not is_junk(text)]
+    if len(rows) < 2:
+        return False
+    measured = sum(1 for text in rows if _MEASURED_INGREDIENT.match(text))
+    return measured >= 2 and measured * 2 >= len(rows)
 
 
 def from_headings(root: Tag) -> tuple[str, Groups, Groups] | None:
@@ -626,6 +819,15 @@ def from_headings(root: Tag) -> tuple[str, Groups, Groups] | None:
 
     ingredient_sections = find_ingredient_sections(sections)
     method_sections = find_method_sections(sections)
+    if not ingredient_sections and method_sections:
+        # Some papers print no "Ingredients" heading at all and put the list
+        # straight under the recipe title, immediately above the method
+        # (dn.no). Take the block just before the method when it reads like one.
+        start = _first_section(sections, _METHOD_HEADINGS) or 0
+        for section in reversed(sections[:start]):
+            if looks_like_ingredient_rows(section.items):
+                ingredient_sections = [section]
+            break
     if not ingredient_sections and not method_sections:
         return None
 
@@ -652,7 +854,7 @@ def from_headings(root: Tag) -> tuple[str, Groups, Groups] | None:
     groups_steps: Groups = []
     for section in method_sections:
         items = [
-            text for kind, text in section.items
+            strip_leading_number(text) for kind, text in section.items
             if kind in ("li", "p", "table") and not is_junk(text) and len(text) > 25
         ]
         # Drop a leading blurb such as "We'll walk through each step...".
@@ -664,6 +866,21 @@ def from_headings(root: Tag) -> tuple[str, Groups, Groups] | None:
     if groups_ing or groups_steps:
         return ("", groups_ing, groups_steps)
     return None
+
+
+def _fallback_roots(soup: BeautifulSoup, exclude: Tag | None) -> list[Tag]:
+    """Wider containers to retry when the chosen content root has no recipe.
+
+    Some themes put the recipe card outside `entry-content` -- detgladekjokken.no
+    keeps Ingredienser/Fremgangsmåte in a sibling of it -- so the first guess can
+    come back empty even though the page does contain the recipe.
+    """
+    candidates: list[Tag] = []
+    for selector in ("article", "main", "[role=main]", ".post", ".entry", "#content", "body"):
+        node = soup.select_one(selector)
+        if node is not None and node is not exclude:
+            candidates.append(node)
+    return candidates
 
 
 def extract(html: str) -> tuple[str, Groups, Groups, str]:
@@ -679,6 +896,21 @@ def extract(html: str) -> tuple[str, Groups, Groups, str]:
     if result is None:
         result = from_headings(root)
         tier = "heading heuristic"
+        # Some publishers list ingredients in JSON-LD but write the instructions
+        # only in the markup (norwayseafoods.com). Prefer the author's own
+        # ingredient text over the markup copy, which arrives as div rows with
+        # a stray number in front of every line.
+        if result is not None and result[1] and result[2]:
+            name, schema_ing, _ = schema_parts(soup)
+            if schema_ing:
+                result = (result[0] or name, schema_ing, result[2])
+                tier = "schema ingredients + heading instructions"
+    if result is None:
+        for candidate in _fallback_roots(soup, exclude=root):
+            drop_junk(candidate)
+            result = from_headings(candidate)
+            if result is not None:
+                break
     if result is None:
         return (title, [], [], "none")
     schema_name, ingredient_groups, step_groups = result
@@ -720,15 +952,18 @@ def lint(path: Path) -> list[str]:
             break
 
     # The house style is "N°C (N°F)" on every temperature. Remove the pairs that
-    # already comply, then look for leftovers.
-    stripped = re.sub(r"\d{2,3}\s*[°º]?\s*C\s*\(\s*\d{2,3}\s*[°º]?\s*F\s*\)", "", text)
-    bare_c = re.findall(r"\b(\d{2,3})\s*[°º]?\s*C\b", stripped)
-    bare_f = re.findall(r"\b(\d{2,3})\s*[°º]?\s*F\b", stripped)
+    # already comply, then look for leftovers. A range counts as compliant in
+    # the same shape it is written in: "100-120°C (212-248°F)".
+    _CELSIUS = r"\d+(?:\s*[-–—]\s*\d+)?\s*[°º]?\s*C"
+    _FAHRENHEIT = r"\d+(?:\s*[-–—]\s*\d+)?\s*[°º]?\s*F"
+    stripped = re.sub(rf"{_CELSIUS}\s*\(\s*{_FAHRENHEIT}\s*\)", "", text)
+    bare_c = re.findall(rf"\b(\d{{2,3}})\s*[°º]?\s*C\b", stripped)
+    bare_f = re.findall(rf"\b(\d{{2,3}})\s*[°º]?\s*F\b", stripped)
     if bare_c:
         problems.append(f"temperature without Fahrenheit: {bare_c[0]}°C")
     if bare_f:
         problems.append(f"temperature without Celsius: {bare_f[0]}°F")
-    if not re.search(r"\d+°C \(\d+°F\)", text) and (bare_c or bare_f):
+    if not re.search(rf"{_CELSIUS}\s*\(\s*{_FAHRENHEIT}\s*\)", text) and (bare_c or bare_f):
         problems.append("temperatures should be written as 'N°C (N°F)'")
 
     # Steps restart at 1 per stage (see butter_chicken.md), so only upward
@@ -1008,6 +1243,18 @@ def run(args: argparse.Namespace) -> int:
                 return 1
             outcomes["no_recipe"].append((url, "no recipe found"))
             print(f"  no recipe  {url}", file=sys.stderr)
+            continue
+
+        if not any(lines for _, lines in ingredient_groups):
+            # Instructions with no ingredients are the mirror image of the check
+            # below: the extractor found a prose block that reads like a method
+            # but missed the ingredient list, and the draft is unusable either
+            # way, so do not write it.
+            if not batch_mode:
+                print("Found instructions but no ingredients on that page.", file=sys.stderr)
+                return 1
+            outcomes["no_steps"].append((url, "instructions but no ingredients"))
+            print(f"  no ingredients  {url}", file=sys.stderr)
             continue
 
         if not any(lines for _, lines in step_groups):
