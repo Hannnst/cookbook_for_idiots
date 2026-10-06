@@ -1,0 +1,90 @@
+{
+  "fixture": "gladkokken_boeuf",
+  "source": "https://gladkokken.no/oppskrifter/boeuf-bourguignon-klassisk-fransk-og-kanskje-verdens-beste-gryte",
+  "captured": "2026-10-05",
+  "title": "Boeuf Bourguignon - Klassisk fransk og kanskje verdens beste gryte!",
+  "tier": "heading heuristic",
+  "ingredient_groups": [
+    {
+      "heading": "",
+      "lines": [
+        "1,2 kg høyrygg okse",
+        "100 gram bacon",
+        "2 stk løk",
+        "2 stk gulrot",
+        "6 fedd hvitløk",
+        "250 gram sopp",
+        "15 stk småløk",
+        "2 stk laurbærblad",
+        "1 flaske rødvin",
+        "6 dl oksekraft",
+        "1 liten bunt fersk timian",
+        "2 ss smør",
+        "3 ss hvetemel",
+        "salt og pepper"
+      ]
+    }
+  ],
+  "step_groups": [],
+  "conversion_notes": [
+    [
+      "1,2 kg høyrygg okse",
+      "1,2 kg høyrygg okse"
+    ],
+    [
+      "100 gram bacon",
+      "100 g bacon",
+      "100 gram -> 100 g"
+    ],
+    [
+      "2 stk løk",
+      "2 stk løk"
+    ],
+    [
+      "2 stk gulrot",
+      "2 stk gulrot"
+    ],
+    [
+      "6 fedd hvitløk",
+      "6 fedd hvitløk"
+    ],
+    [
+      "250 gram sopp",
+      "250 g sopp",
+      "250 gram -> 250 g"
+    ],
+    [
+      "15 stk småløk",
+      "15 stk småløk"
+    ],
+    [
+      "2 stk laurbærblad",
+      "2 stk laurbærblad"
+    ],
+    [
+      "1 flaske rødvin",
+      "1 flaske rødvin"
+    ],
+    [
+      "6 dl oksekraft",
+      "6 dl oksekraft"
+    ],
+    [
+      "1 liten bunt fersk timian",
+      "1 liten bunt fersk timian"
+    ],
+    [
+      "2 ss smør",
+      "2 ss smør"
+    ],
+    [
+      "3 ss hvetemel",
+      "3 ss hvetemel"
+    ],
+    [
+      "salt og pepper",
+      "salt og pepper"
+    ]
+  ],
+  "markdown": "---\nsource: https://gladkokken.no/oppskrifter/boeuf-bourguignon-klassisk-fransk-og-kanskje-verdens-beste-gryte\ntier: heading heuristic\nreviewed: false\n---\n\n# Boeuf Bourguignon - Klassisk fransk og kanskje verdens beste gryte!\n\n## Ingredients:\n\n- 1,2 kg høyrygg okse\n- 100 g bacon\n- 2 stk løk\n- 2 stk gulrot\n- 6 fedd hvitløk\n- 250 g sopp\n- 15 stk småløk\n- 2 stk laurbærblad\n- 1 flaske rødvin\n- 6 dl oksekraft\n- 1 liten bunt fersk timian\n- 2 ss smør\n- 3 ss hvetemel\n- salt og pepper\n\n## TODO:\n\n1. (no instructions found)\n"
+}

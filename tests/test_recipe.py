@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -321,6 +322,7 @@ class TestVolumeUnitLinting(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "r.md"
             path.write_text(
+                "---\nsource: https://example.no/r\n---\n\n"
                 f"# T\n\n## Ingredients:\n\n- {body}\n\n## TODO:\n\n1. Do it.\n",
                 encoding="utf-8",
             )
@@ -820,7 +822,18 @@ class TestSchemaOrg(unittest.TestCase):
 
 class TestLint(unittest.TestCase):
     def test_clean_repo_file_passes(self):
+        # Hand-written notes predate frontmatter. A corpus sweep must not go red
+        # over them, so the missing source is only reported when asked for.
         self.assertEqual(recipe.lint(ROOT / "dinner" / "broccoli_cauliflower_gratin.md"), [])
+
+    def test_provenance_can_be_required(self):
+        # The setting for freshly generated output, where the source URL is
+        # always known and its absence means something went wrong.
+        self.assertEqual(
+            recipe.lint(ROOT / "dinner" / "broccoli_cauliflower_gratin.md",
+                        require_provenance=True),
+            ["no 'source:' frontmatter: cannot tell which page this came from"],
+        )
 
     def test_cups_are_flagged(self):
         path = Path(self.enterContext(__import__("tempfile").TemporaryDirectory())) / "x.md"
@@ -1278,3 +1291,290 @@ class TestSchemaIngredientsWithMarkupSteps(unittest.TestCase):
         _, ing, _, tier = recipe.extract(card)
         self.assertEqual(tier, "heading heuristic")
         self.assertEqual(sum(len(g) for _, g in ing), 3)
+
+
+class TestSchemaInstructionSections(unittest.TestCase):
+    """simplyrecipes.com nests its instructions in HowToSection objects, each
+    with a name and its own itemListElement list. Reading the nested items as if
+    they were strings used to dump raw Python dict reprs into the note."""
+
+    CARD = """<html><head><script type="application/ld+json">
+    {"@context":"http://schema.org","@type":"Recipe","name":"Homemade Pizza",
+     "recipeIngredient":["500 g bread flour","300 ml warm water"],
+     "recipeInstructions":[
+       {"@type":"HowToSection","name":"Making the Dough",
+        "itemListElement":[
+          {"@type":"HowToStep","text":"Mix the flour and the yeast."},
+          {"@type":"HowToStep","text":"Add the water and knead."}]},
+       {"@type":"HowToSection","name":"Baking",
+        "itemListElement":[
+          {"@type":"HowToStep","text":"Heat the oven to 250°C."}]}]}
+    </script></head><body></body></html>"""
+
+    def test_nested_sections_become_groups(self):
+        _, _, steps, tier = recipe.extract(self.CARD)
+        self.assertEqual(tier, "schema.org/Recipe")
+        self.assertEqual([heading for heading, _ in steps], ["Making the Dough", "Baking"])
+        self.assertEqual([len(lines) for _, lines in steps], [2, 1])
+
+    def test_step_text_is_read_not_repr(self):
+        _, _, steps, _ = recipe.extract(self.CARD)
+        flat = [line for _, lines in steps for line in lines]
+        self.assertIn("Mix the flour and the yeast.", flat)
+        for line in flat:
+            self.assertNotIn("@type", line)
+            self.assertNotIn("itemListElement", line)
+            self.assertNotIn("{", line)
+
+    def test_sections_nest_arbitrarily_deep(self):
+        card = """<html><head><script type="application/ld+json">
+        {"@context":"http://schema.org","@type":"Recipe","name":"Nested",
+         "recipeIngredient":["1 egg"],
+         "recipeInstructions":[
+           {"@type":"HowToSection","name":"Outer",
+            "itemListElement":[
+              {"@type":"HowToSection","name":"Inner",
+               "itemListElement":[{"@type":"HowToStep","text":"Do the thing."}]}]}]}
+        </script></head><body></body></html>"""
+        _, _, steps, _ = recipe.extract(card)
+        flat = [line for _, lines in steps for line in lines]
+        self.assertEqual(flat, ["Do the thing."])
+
+    def test_a_bare_instruction_string_still_works(self):
+        card = """<html><head><script type="application/ld+json">
+        {"@context":"http://schema.org","@type":"Recipe","name":"Plain",
+         "recipeIngredient":["1 egg"],
+         "recipeInstructions":["Mix it.","Bake it."]}
+        </script></head><body></body></html>"""
+        _, _, steps, _ = recipe.extract(card)
+        self.assertEqual([heading for heading, _ in steps], [""])
+        self.assertEqual(steps[0][1], ["Mix it.", "Bake it."])
+
+
+class TestHyphenatedMixedFractions(unittest.TestCase):
+    """Taste of Home writes "2-1/4 pounds". That is a mixed number, not a range,
+    and reading it as one produced "905-115 g"."""
+
+    def test_hyphenated_mixed_fraction_converts_as_one_number(self):
+        self.assertEqual(units.normalize_line("2-1/4 pounds chicken")[0], "1.02 kg chicken")
+
+    def test_hyphenated_mixed_fraction_of_cups(self):
+        self.assertEqual(units.normalize_line("1-1/2 cups milk")[0], "3.5 dl milk")
+
+    def test_a_real_range_is_still_a_range(self):
+        self.assertEqual(units.normalize_line("1-2 pounds flour")[0], "455-905 g flour")
+        self.assertEqual(units.normalize_line("3/4-1 cup oil")[0], "1.8-2.4 dl oil")
+
+    def test_a_value_already_in_the_house_unit_is_left_alone(self):
+        self.assertEqual(units.normalize_line("2-1/4 dl cream")[0], "2-1/4 dl cream")
+        self.assertEqual(units.normalize_line("0,5 l vann")[0], "5 dl vann")
+
+
+class TestRedundantImperialMeasure(unittest.TestCase):
+    """"3 3/4 cups (490 g) bread flour" carries two numbers for one quantity, and
+    the parenthetical also hides the ingredient name from the density lookup."""
+
+    def test_the_imperial_half_is_dropped(self):
+        line, notes = units.normalize_line("3 3/4 cups (490 g) bread flour")
+        self.assertEqual(line, "490 g bread flour")
+        self.assertTrue(any("already gives" in note for note in notes))
+
+    def test_the_metric_value_survives(self):
+        # Kept, and then put in the house unit like any other volume: dl over ml.
+        line, _ = units.normalize_line("1 1/2 cups (355 ml) warm water")
+        self.assertEqual(line, "3.6 dl warm water")
+
+    def test_brackets_stay_when_something_precedes_them(self):
+        # Mid-line there is nothing for the brackets to pair with, so they stay.
+        line, _ = units.normalize_line("Melt 1/2 cup (115 g) unsalted butter")
+        self.assertEqual(line, "Melt (115 g) unsalted butter")
+
+    def test_a_paired_temperature_is_not_duplicated(self):
+        # "40-45°C (104-113°F)" is already finished; a second pass used to
+        # convert the Celsius end again and append the whole pair twice.
+        line, _ = units.normalize_line("1 1/2 cups (355 ml) warm water (40-45°C (104-113°F))")
+        self.assertEqual(line, "3.6 dl warm water (40-45°C (104-113°F))")
+        self.assertEqual(units.normalize_line("200°C (392°F)")[0], "200°C (392°F)")
+        self.assertEqual(units.normalize_line("180-200°C (356-392°F)")[0],
+                         "180-200°C (356-392°F)")
+
+    def test_a_parenthesised_imperial_measure_is_left_alone(self):
+        # "1 package (2 1/4 teaspoons)" -- the parenthetical is not a metric
+        # value, so there is nothing redundant to remove.
+        line, _ = units.normalize_line("1 package (2 1/4 teaspoons) active dry yeast")
+        self.assertEqual(line, "1 package (2 1/4 teaspoons) active dry yeast")
+
+
+class TestProvenance(unittest.TestCase):
+    """A note that does not say which page it came from cannot be re-extracted.
+
+    This is what the Android app needs to detect updates and to dedupe, and what
+    lets a draft be rebuilt after a fix to the extractor. Before this, none of the
+    67 bulk-extracted drafts recorded their URL.
+    """
+
+    BODY = "\n\n## Ingredients:\n\n- 240 g flour\n\n## TODO:\n\n1. Mix it.\n"
+
+    def test_render_writes_the_keys_in_a_fixed_order(self):
+        markdown = recipe.render(
+            "Cake", [("", ["240 g flour"])], [("", ["Mix it."])],
+            meta={
+                "source": "https://example.no/r", "tier": "schema.org/Recipe",
+                "fetched": "2026-10-05", "category": "dessert", "reviewed": "false",
+            },
+        )
+        keys = [l.split(":")[0] for l in markdown.splitlines() if not l.startswith("---")
+                and ":" in l and not l.startswith("#")][:5]
+        self.assertEqual(keys[:5], ["source", "tier", "fetched", "category", "reviewed"])
+
+    def test_render_without_meta_is_unchanged(self):
+        markdown = recipe.render("Cake", [("", ["240 g flour"])], [("", ["Mix it."])])
+        self.assertTrue(markdown.startswith("# Cake\n"))
+        self.assertNotIn("---", markdown)
+
+    def test_empty_values_are_left_out(self):
+        markdown = recipe.render(
+            "Cake", [], [], meta={"source": "https://example.no/r", "category": ""},
+        )
+        self.assertNotIn("category:", markdown)
+        self.assertIn("source: https://example.no/r", markdown)
+
+    def test_parse_round_trips(self):
+        text = ("---\nsource: https://example.no/r\ntier: heading heuristic\n"
+                "fetched: 2026-10-05\ncategory: dinner\nreviewed: false\n---\n\n# Cake\n")
+        self.assertEqual(recipe.parse_frontmatter(text), {
+            "source": "https://example.no/r", "tier": "heading heuristic",
+            "fetched": "2026-10-05", "category": "dinner", "reviewed": "false",
+        })
+
+    def test_parse_returns_nothing_for_a_hand_written_note(self):
+        self.assertEqual(recipe.parse_frontmatter("# Cake\n\n## Ingredients:\n"), {})
+
+    def test_parse_ignores_an_unclosed_block(self):
+        self.assertEqual(recipe.parse_frontmatter("---\nsource: https://x.no\n\n# Cake\n"), {})
+
+    def test_a_note_with_a_source_lints_clean(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "r.md"
+            path.write_text("---\nsource: https://example.no/r\ntier: heading heuristic\n---\n\n"
+                            "# Cake" + self.BODY, encoding="utf-8")
+            self.assertEqual(recipe.lint(path), [])
+
+    def test_missing_frontmatter_is_suggested_not_an_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "r.md"
+            path.write_text("# Cake" + self.BODY, encoding="utf-8")
+            self.assertEqual(recipe.lint(path), [])
+            self.assertEqual(
+                recipe.lint(path, require_provenance=True),
+                ["no 'source:' frontmatter: cannot tell which page this came from"],
+            )
+
+    def test_broken_frontmatter_is_always_an_error(self):
+        # Unlike a missing block, a block that is present but wrong looks like
+        # it should work, so it is reported either way.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "r.md"
+            path.write_text("---\nsource: not-a-url\n---\n# Cake" + self.BODY,
+                            encoding="utf-8")
+            self.assertIn("source is not a URL: 'not-a-url'", recipe.lint(path))
+
+    def test_frontmatter_without_a_source_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "r.md"
+            path.write_text("---\ntier: heading heuristic\n---\n\n# Cake" + self.BODY,
+                            encoding="utf-8")
+            self.assertIn("frontmatter has no 'source:' URL", recipe.lint(path))
+
+    def test_a_non_url_source_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "r.md"
+            path.write_text("---\nsource: example.no/r\n---\n\n# Cake" + self.BODY,
+                            encoding="utf-8")
+            self.assertIn("source is not a URL: 'example.no/r'", recipe.lint(path))
+
+    def test_an_empty_extraction_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "r.md"
+            path.write_text("---\nsource: https://example.no/r\ntier: none\n---\n\n"
+                            "# Cake" + self.BODY, encoding="utf-8")
+            self.assertIn("tier 'none': nothing was extracted from this page", recipe.lint(path))
+
+    def test_a_broken_block_is_flagged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "r.md"
+            path.write_text("---\n\n# Cake" + self.BODY, encoding="utf-8")
+            self.assertIn("frontmatter block is not closed or has no keys", recipe.lint(path))
+
+    def test_a_batch_run_writes_provenance_to_disk(self):
+        # The suite stays offline: fetch is stubbed the way TestBatchMode does it,
+        # so this asserts the real run() -> render() -> file path without a network.
+        with tempfile.TemporaryDirectory() as tmp:
+            cwd = os.getcwd()
+            os.chdir(tmp)
+            self.addCleanup(os.chdir, cwd)
+            self.addCleanup(setattr, recipe, "fetch", recipe.fetch)
+            recipe.fetch = lambda url: (
+                "<!doctype html><html><head><title>x</title></head><body>"
+                '<div class="entry-content"><h1>Butter chicken</h1>'
+                "<h2>Ingredients</h2><ul><li>1 tablespoon olive oil</li></ul>"
+                "<h2>Instructions</h2><ol>"
+                "<li>Heat the oil until hot and add the vegetables.</li></ol>"
+                "</div></body></html>"
+            )
+            recipe.run(recipe.build_parser().parse_args(
+                ["https://a.com/dinner", "https://b.com/dessert", "--delay", "0"]))
+
+            written = Path(tmp) / "normies" / "dinner" / "butter_chicken.md"
+            meta = recipe.parse_frontmatter(written.read_text(encoding="utf-8"))
+            self.assertEqual(meta["source"], "https://a.com/dinner")
+            self.assertEqual(meta["category"], "dinner")
+            self.assertEqual(meta["reviewed"], "false")
+            self.assertRegex(meta["fetched"], r"^\d{4}-\d{2}-\d{2}$")
+            self.assertEqual(meta["tier"], "heading heuristic")
+            self.assertEqual(recipe.lint(written), [])
+
+    def test_a_single_url_gets_no_category(self):
+        # A single URL is written to the repo root for the author to file by hand,
+        # so claiming a category would be a guess.
+        with tempfile.TemporaryDirectory() as tmp:
+            cwd = os.getcwd()
+            os.chdir(tmp)
+            self.addCleanup(os.chdir, cwd)
+            self.addCleanup(setattr, recipe, "fetch", recipe.fetch)
+            recipe.fetch = lambda url: (
+                "<!doctype html><html><head><title>x</title></head><body>"
+                '<div class="entry-content"><h1>Butter chicken</h1>'
+                "<h2>Ingredients</h2><ul><li>1 tablespoon olive oil</li></ul>"
+                "<h2>Instructions</h2><ol>"
+                "<li>Heat the oil until hot and add the vegetables.</li></ol>"
+                "</div></body></html>"
+            )
+            recipe.run(recipe.build_parser().parse_args(["https://a.com/dinner"]))
+            meta = recipe.parse_frontmatter(
+                Path("butter_chicken.md").read_text(encoding="utf-8"))
+            self.assertEqual(meta["source"], "https://a.com/dinner")
+            self.assertNotIn("category", meta)
+
+    def test_a_refreshed_draft_keeps_its_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            cwd = os.getcwd()
+            os.chdir(tmp)
+            self.addCleanup(os.chdir, cwd)
+            self.addCleanup(setattr, recipe, "fetch", recipe.fetch)
+            recipe.fetch = lambda url: (
+                "<!doctype html><html><head><title>x</title></head><body>"
+                '<div class="entry-content"><h1>Butter chicken</h1>'
+                "<h2>Ingredients</h2><ul><li>1 tablespoon olive oil</li></ul>"
+                "<h2>Instructions</h2><ol>"
+                "<li>Heat the oil until hot and add the vegetables.</li></ol>"
+                "</div></body></html>"
+            )
+            args = ["https://a.com/dinner", "https://b.com/dessert",
+                    "--folder", "dinner", "--delay", "0", "--refresh"]
+            recipe.run(recipe.build_parser().parse_args(args))
+            written = Path(tmp) / "normies" / "dinner" / "butter_chicken.md"
+            written.write_text("# edited\n", encoding="utf-8")
+            recipe.run(recipe.build_parser().parse_args(args))
+            self.assertIn("source: https://a.com/dinner",
+                          written.read_text(encoding="utf-8"))

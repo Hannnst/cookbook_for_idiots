@@ -1,0 +1,215 @@
+{
+  "fixture": "denstoltehane_kyllingkraft",
+  "source": "https://www.denstoltehane.no/recipe/kyllingkraft/",
+  "captured": "2026-10-05",
+  "title": "Kyllingkraft på skroget",
+  "tier": "heading heuristic",
+  "ingredient_groups": [
+    {
+      "heading": "",
+      "lines": [
+        "1 stk kyllingskrog (rester fra hel kylling)",
+        "1 stk purreløk",
+        "2 stk vanlig løk",
+        "1 stk fennikel",
+        "4 stk gulrot",
+        "1 stk hvitløk",
+        "2 l vann",
+        "INGREDIENSER INGREDIENSER",
+        "Kyllingkraft laget på skroget til hel kylling, redusert til tre forskjellige krafter."
+      ]
+    }
+  ],
+  "step_groups": [
+    {
+      "heading": "",
+      "lines": [
+        "Skrell, vask og kutt opp grønnsaker i passe biter.",
+        "Skyll kyllingskrog å eventuelle parter av kyllingen godt, for å forsikre at det ikke er noe blod igjen etc. Blod vil gi en uklar kraft, og skape mer jobb for et bra resultat.",
+        "Ha alle ingredienser i en stor kjele og hell i vann til alt innholdet er dekket.",
+        "Ha på et lokk så det koker raskere. Når det begynner å koke, sett ned temperaturen på lav varme (2/10) , og la så kraften trekke.",
+        "Når den har kokt opp vil du se groms og «protein» fra kyllingen, som vil flyte opp å danne et skum på toppen av kraften. Det kalles Skumming, og det skal fjernes. Ta en øse og fjern skummet forsiktig, uten å få med noe av kraften.",
+        "La kraften stå urørt og rolig på lav varme i ca 4-6 timer.",
+        "Sil så av all kylling og grønnsaker gjennom en fin sil, så du får bort alle urenheter.",
+        "Det du sitter igjen med etter siling er en deilig kyllingkraft. Denne egner seg fantastisk som base for alle slags supper.",
+        "Om du vil konsentrere smaken på kyllingkraften ytterligere, så kan kraften reduseres.",
+        "Ha kraften tilbake i en ny kjele, jo bredere og større, jo raskere blir den ferdig.",
+        "Sett den på medium varme å la den redusere til ønsket smaksgrad. Når den reduseres, må du igjen fjerne det skummet som vil dukke opp! Dette er igjen urenheter i kraften som flyter til overflaten gjennom prosessen. Skummer du bort dette ender du med en veldig ren og klar kraft.",
+        "Reduserer du til 50 % har du en kraft som egner seg veldig bra til for eksempel kjøttkaker i hverdagen. Eller en deilig gryterett, da den gir mer smak og fylde.",
+        "Når du kommer til 10-20% av den opprinnelige kraften vil det naturlige gelatinet i kyllingen begynne vise seg. Kraften vil bli tykkere og tykkere, og tilslutt blir den som en glace i samme konsistens som honning.",
+        "Da sitter du igjen med noe som kalles Demi Glace. En veldig ren og konsentrert smak av kylling og de øvrige ingrediensene. Denne kan brukes som den er, over en god bit kylling, eller annen type kjøtt. Smak til med litt smør.",
+        "I alle våre oppskrifter har vi regnet ut CO₂e-utslipp og andre variabler for klimapåvirkning som oppstår i forbindelse med produksjonen av rettene."
+      ]
+    },
+    {
+      "heading": "Denne retten har",
+      "lines": [
+        "Lavt CO₂e-utslipp: 0.1-0.5",
+        "Kremet blomkålsuppe med kraft",
+        "Øldampet helstekt kylling ala Ragnar",
+        "Autentisk meksikansk adobado kylling taco",
+        "Ovnsbakt hel kylling med hvitløk, tomater og oliven",
+        "Hot & Crispy lollipopvinger med estragonmajones",
+        "Sterke lollipop vinger med hot honey glaze",
+        "Frisk og syrlig kyllingsalat",
+        "Kyllingspyd med appelsin og rosmarin",
+        "Kyllingvinger med koriansk glaze",
+        "Greske Lollipop kyllingvinger",
+        "Kyllinglår med spicy peanøttramen",
+        "Marry Me Chicken med Spiseklar kylling soltørket tomat"
+      ]
+    }
+  ],
+  "conversion_notes": [
+    [
+      "1 stk kyllingskrog (rester fra hel kylling)",
+      "1 stk kyllingskrog (rester fra hel kylling)"
+    ],
+    [
+      "1 stk purreløk",
+      "1 stk purreløk"
+    ],
+    [
+      "2 stk vanlig løk",
+      "2 stk vanlig løk"
+    ],
+    [
+      "1 stk fennikel",
+      "1 stk fennikel"
+    ],
+    [
+      "4 stk gulrot",
+      "4 stk gulrot"
+    ],
+    [
+      "1 stk hvitløk",
+      "1 stk hvitløk"
+    ],
+    [
+      "2 l vann",
+      "20 dl vann",
+      "2 l -> 20 dl"
+    ],
+    [
+      "INGREDIENSER INGREDIENSER",
+      "INGREDIENSER INGREDIENSER"
+    ],
+    [
+      "Kyllingkraft laget på skroget til hel kylling, redusert til tre forskjellige krafter.",
+      "Kyllingkraft laget på skroget til hel kylling, redusert til tre forskjellige krafter."
+    ],
+    [
+      "Skrell, vask og kutt opp grønnsaker i passe biter.",
+      "Skrell, vask og kutt opp grønnsaker i passe biter."
+    ],
+    [
+      "Skyll kyllingskrog å eventuelle parter av kyllingen godt, for å forsikre at det ikke er noe blod igjen etc. Blod vil gi en uklar kraft, og skape mer jobb for et bra resultat.",
+      "Skyll kyllingskrog å eventuelle parter av kyllingen godt, for å forsikre at det ikke er noe blod igjen etc. Blod vil gi en uklar kraft, og skape mer jobb for et bra resultat."
+    ],
+    [
+      "Ha alle ingredienser i en stor kjele og hell i vann til alt innholdet er dekket.",
+      "Ha alle ingredienser i en stor kjele og hell i vann til alt innholdet er dekket."
+    ],
+    [
+      "Ha på et lokk så det koker raskere. Når det begynner å koke, sett ned temperaturen på lav varme (2/10) , og la så kraften trekke.",
+      "Ha på et lokk så det koker raskere. Når det begynner å koke, sett ned temperaturen på lav varme (2/10) , og la så kraften trekke."
+    ],
+    [
+      "Når den har kokt opp vil du se groms og «protein» fra kyllingen, som vil flyte opp å danne et skum på toppen av kraften. Det kalles Skumming, og det skal fjernes. Ta en øse og fjern skummet forsiktig, uten å få med noe av kraften.",
+      "Når den har kokt opp vil du se groms og «protein» fra kyllingen, som vil flyte opp å danne et skum på toppen av kraften. Det kalles Skumming, og det skal fjernes. Ta en øse og fjern skummet forsiktig, uten å få med noe av kraften."
+    ],
+    [
+      "La kraften stå urørt og rolig på lav varme i ca 4-6 timer.",
+      "La kraften stå urørt og rolig på lav varme i ca 4-6 timer."
+    ],
+    [
+      "Sil så av all kylling og grønnsaker gjennom en fin sil, så du får bort alle urenheter.",
+      "Sil så av all kylling og grønnsaker gjennom en fin sil, så du får bort alle urenheter."
+    ],
+    [
+      "Det du sitter igjen med etter siling er en deilig kyllingkraft. Denne egner seg fantastisk som base for alle slags supper.",
+      "Det du sitter igjen med etter siling er en deilig kyllingkraft. Denne egner seg fantastisk som base for alle slags supper."
+    ],
+    [
+      "Om du vil konsentrere smaken på kyllingkraften ytterligere, så kan kraften reduseres.",
+      "Om du vil konsentrere smaken på kyllingkraften ytterligere, så kan kraften reduseres."
+    ],
+    [
+      "Ha kraften tilbake i en ny kjele, jo bredere og større, jo raskere blir den ferdig.",
+      "Ha kraften tilbake i en ny kjele, jo bredere og større, jo raskere blir den ferdig."
+    ],
+    [
+      "Sett den på medium varme å la den redusere til ønsket smaksgrad. Når den reduseres, må du igjen fjerne det skummet som vil dukke opp! Dette er igjen urenheter i kraften som flyter til overflaten gjennom prosessen. Skummer du bort dette ender du med en veldig ren og klar kraft.",
+      "Sett den på medium varme å la den redusere til ønsket smaksgrad. Når den reduseres, må du igjen fjerne det skummet som vil dukke opp! Dette er igjen urenheter i kraften som flyter til overflaten gjennom prosessen. Skummer du bort dette ender du med en veldig ren og klar kraft."
+    ],
+    [
+      "Reduserer du til 50 % har du en kraft som egner seg veldig bra til for eksempel kjøttkaker i hverdagen. Eller en deilig gryterett, da den gir mer smak og fylde.",
+      "Reduserer du til 50 % har du en kraft som egner seg veldig bra til for eksempel kjøttkaker i hverdagen. Eller en deilig gryterett, da den gir mer smak og fylde."
+    ],
+    [
+      "Når du kommer til 10-20% av den opprinnelige kraften vil det naturlige gelatinet i kyllingen begynne vise seg. Kraften vil bli tykkere og tykkere, og tilslutt blir den som en glace i samme konsistens som honning.",
+      "Når du kommer til 10-20% av den opprinnelige kraften vil det naturlige gelatinet i kyllingen begynne vise seg. Kraften vil bli tykkere og tykkere, og tilslutt blir den som en glace i samme konsistens som honning."
+    ],
+    [
+      "Da sitter du igjen med noe som kalles Demi Glace. En veldig ren og konsentrert smak av kylling og de øvrige ingrediensene. Denne kan brukes som den er, over en god bit kylling, eller annen type kjøtt. Smak til med litt smør.",
+      "Da sitter du igjen med noe som kalles Demi Glace. En veldig ren og konsentrert smak av kylling og de øvrige ingrediensene. Denne kan brukes som den er, over en god bit kylling, eller annen type kjøtt. Smak til med litt smør."
+    ],
+    [
+      "I alle våre oppskrifter har vi regnet ut CO₂e-utslipp og andre variabler for klimapåvirkning som oppstår i forbindelse med produksjonen av rettene.",
+      "I alle våre oppskrifter har vi regnet ut CO₂e-utslipp og andre variabler for klimapåvirkning som oppstår i forbindelse med produksjonen av rettene."
+    ],
+    [
+      "Lavt CO₂e-utslipp: 0.1-0.5",
+      "Lavt CO₂e-utslipp: 0.1-0.5"
+    ],
+    [
+      "Kremet blomkålsuppe med kraft",
+      "Kremet blomkålsuppe med kraft"
+    ],
+    [
+      "Øldampet helstekt kylling ala Ragnar",
+      "Øldampet helstekt kylling ala Ragnar"
+    ],
+    [
+      "Autentisk meksikansk adobado kylling taco",
+      "Autentisk meksikansk adobado kylling taco"
+    ],
+    [
+      "Ovnsbakt hel kylling med hvitløk, tomater og oliven",
+      "Ovnsbakt hel kylling med hvitløk, tomater og oliven"
+    ],
+    [
+      "Hot & Crispy lollipopvinger med estragonmajones",
+      "Hot & Crispy lollipopvinger med estragonmajones"
+    ],
+    [
+      "Sterke lollipop vinger med hot honey glaze",
+      "Sterke lollipop vinger med hot honey glaze"
+    ],
+    [
+      "Frisk og syrlig kyllingsalat",
+      "Frisk og syrlig kyllingsalat"
+    ],
+    [
+      "Kyllingspyd med appelsin og rosmarin",
+      "Kyllingspyd med appelsin og rosmarin"
+    ],
+    [
+      "Kyllingvinger med koriansk glaze",
+      "Kyllingvinger med koriansk glaze"
+    ],
+    [
+      "Greske Lollipop kyllingvinger",
+      "Greske Lollipop kyllingvinger"
+    ],
+    [
+      "Kyllinglår med spicy peanøttramen",
+      "Kyllinglår med spicy peanøttramen"
+    ],
+    [
+      "Marry Me Chicken med Spiseklar kylling soltørket tomat",
+      "Marry Me Chicken med Spiseklar kylling soltørket tomat"
+    ]
+  ],
+  "markdown": "---\nsource: https://www.denstoltehane.no/recipe/kyllingkraft/\ntier: heading heuristic\nreviewed: false\n---\n\n# Kyllingkraft på skroget\n\n## Ingredients:\n\n- 1 stk kyllingskrog (rester fra hel kylling)\n- 1 stk purreløk\n- 2 stk vanlig løk\n- 1 stk fennikel\n- 4 stk gulrot\n- 1 stk hvitløk\n- 20 dl vann\n- INGREDIENSER INGREDIENSER\n- Kyllingkraft laget på skroget til hel kylling, redusert til tre forskjellige krafter.\n\n## TODO:\n\n1. Skrell, vask og kutt opp grønnsaker i passe biter.\n2. Skyll kyllingskrog å eventuelle parter av kyllingen godt, for å forsikre at det ikke er noe blod igjen etc. Blod vil gi en uklar kraft, og skape mer jobb for et bra resultat.\n3. Ha alle ingredienser i en stor kjele og hell i vann til alt innholdet er dekket.\n4. Ha på et lokk så det koker raskere. Når det begynner å koke, sett ned temperaturen på lav varme (2/10) , og la så kraften trekke.\n5. Når den har kokt opp vil du se groms og «protein» fra kyllingen, som vil flyte opp å danne et skum på toppen av kraften. Det kalles Skumming, og det skal fjernes. Ta en øse og fjern skummet forsiktig, uten å få med noe av kraften.\n6. La kraften stå urørt og rolig på lav varme i ca 4-6 timer.\n7. Sil så av all kylling og grønnsaker gjennom en fin sil, så du får bort alle urenheter.\n8. Det du sitter igjen med etter siling er en deilig kyllingkraft. Denne egner seg fantastisk som base for alle slags supper.\n9. Om du vil konsentrere smaken på kyllingkraften ytterligere, så kan kraften reduseres.\n10. Ha kraften tilbake i en ny kjele, jo bredere og større, jo raskere blir den ferdig.\n11. Sett den på medium varme å la den redusere til ønsket smaksgrad. Når den reduseres, må du igjen fjerne det skummet som vil dukke opp! Dette er igjen urenheter i kraften som flyter til overflaten gjennom prosessen. Skummer du bort dette ender du med en veldig ren og klar kraft.\n12. Reduserer du til 50 % har du en kraft som egner seg veldig bra til for eksempel kjøttkaker i hverdagen. Eller en deilig gryterett, da den gir mer smak og fylde.\n13. Når du kommer til 10-20% av den opprinnelige kraften vil det naturlige gelatinet i kyllingen begynne vise seg. Kraften vil bli tykkere og tykkere, og tilslutt blir den som en glace i samme konsistens som honning.\n14. Da sitter du igjen med noe som kalles Demi Glace. En veldig ren og konsentrert smak av kylling og de øvrige ingrediensene. Denne kan brukes som den er, over en god bit kylling, eller annen type kjøtt. Smak til med litt smør.\n15. I alle våre oppskrifter har vi regnet ut CO₂e-utslipp og andre variabler for klimapåvirkning som oppstår i forbindelse med produksjonen av rettene.\n### Denne retten har\n\n16. Lavt CO₂e-utslipp: 0.1-0.5\n17. Kremet blomkålsuppe med kraft\n18. Øldampet helstekt kylling ala Ragnar\n19. Autentisk meksikansk adobado kylling taco\n20. Ovnsbakt hel kylling med hvitløk, tomater og oliven\n21. Hot & Crispy lollipopvinger med estragonmajones\n22. Sterke lollipop vinger med hot honey glaze\n23. Frisk og syrlig kyllingsalat\n24. Kyllingspyd med appelsin og rosmarin\n25. Kyllingvinger med koriansk glaze\n26. Greske Lollipop kyllingvinger\n27. Kyllinglår med spicy peanøttramen\n28. Marry Me Chicken med Spiseklar kylling soltørket tomat\n"
+}

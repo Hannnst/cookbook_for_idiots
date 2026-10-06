@@ -1,0 +1,95 @@
+{
+  "fixture": "tasteofhome_chicken_stew",
+  "source": "https://www.tasteofhome.com/recipes/slow-cooker-chicken-stew/",
+  "captured": "2026-10-05",
+  "title": "Slow Cooker Chicken Stew",
+  "tier": "schema.org/Recipe",
+  "ingredient_groups": [
+    {
+      "heading": "",
+      "lines": [
+        "2-1/4 pounds bone-in chicken thighs, skin removed",
+        "1 large onion, chopped",
+        "2 medium carrots, sliced",
+        "3/4 cup unsweetened apple juice",
+        "1 garlic clove, minced",
+        "1 teaspoon salt",
+        "1/2 teaspoon ground cinnamon",
+        "1/2 teaspoon pepper",
+        "1 cup chopped dried apricots",
+        "Hot cooked couscous"
+      ]
+    }
+  ],
+  "step_groups": [
+    {
+      "heading": "",
+      "lines": [
+        "Place the chicken, onion and carrots in a 3- or 4-qt. slow cooker coated with cooking spray. In a small bowl, combine the apple juice, garlic, salt, cinnamon and pepper; pour over vegetables.",
+        "Cover and cook on low for 6-8 hours or until chicken is tender.",
+        "Remove chicken from slow cooker; shred meat with two forks. Skim fat from cooking juices; stir in apricots. Return shredded chicken to slow cooker; heat though. Serve with couscous."
+      ]
+    }
+  ],
+  "conversion_notes": [
+    [
+      "2-1/4 pounds bone-in chicken thighs, skin removed",
+      "1.02 kg bone-in chicken thighs, skin removed",
+      "2-1/4 pounds -> 1.02 kg"
+    ],
+    [
+      "1 large onion, chopped",
+      "1 large onion, chopped"
+    ],
+    [
+      "2 medium carrots, sliced",
+      "2 medium carrots, sliced"
+    ],
+    [
+      "3/4 cup unsweetened apple juice",
+      "1.8 dl unsweetened apple juice",
+      "3/4 cup -> 1.8 dl"
+    ],
+    [
+      "1 garlic clove, minced",
+      "1 garlic clove, minced"
+    ],
+    [
+      "1 teaspoon salt",
+      "6 g salt",
+      "1 teaspoon -> 6 g (by density)"
+    ],
+    [
+      "1/2 teaspoon ground cinnamon",
+      "1/2 teaspoon ground cinnamon",
+      "kept as-is: no density for 'teaspoon' of this ingredient"
+    ],
+    [
+      "1/2 teaspoon pepper",
+      "1/2 teaspoon pepper",
+      "kept as-is: no density for 'teaspoon' of this ingredient"
+    ],
+    [
+      "1 cup chopped dried apricots",
+      "1 cup chopped dried apricots",
+      "kept as-is: no density for 'cup' of this ingredient"
+    ],
+    [
+      "Hot cooked couscous",
+      "Hot cooked couscous"
+    ],
+    [
+      "Place the chicken, onion and carrots in a 3- or 4-qt. slow cooker coated with cooking spray. In a small bowl, combine the apple juice, garlic, salt, cinnamon and pepper; pour over vegetables.",
+      "Place the chicken, onion and carrots in a 3- or 4-qt. slow cooker coated with cooking spray. In a small bowl, combine the apple juice, garlic, salt, cinnamon and pepper; pour over vegetables."
+    ],
+    [
+      "Cover and cook on low for 6-8 hours or until chicken is tender.",
+      "Cover and cook on low for 6-8 hours or until chicken is tender."
+    ],
+    [
+      "Remove chicken from slow cooker; shred meat with two forks. Skim fat from cooking juices; stir in apricots. Return shredded chicken to slow cooker; heat though. Serve with couscous.",
+      "Remove chicken from slow cooker; shred meat with two forks. Skim fat from cooking juices; stir in apricots. Return shredded chicken to slow cooker; heat though. Serve with couscous."
+    ]
+  ],
+  "markdown": "---\nsource: https://www.tasteofhome.com/recipes/slow-cooker-chicken-stew/\ntier: schema.org/Recipe\nreviewed: false\n---\n\n# Slow Cooker Chicken Stew\n\n## Ingredients:\n\n- 1.02 kg bone-in chicken thighs, skin removed\n- 1 large onion, chopped\n- 2 medium carrots, sliced\n- 1.8 dl unsweetened apple juice\n- 1 garlic clove, minced\n- 6 g salt\n- 1/2 teaspoon ground cinnamon\n- 1/2 teaspoon pepper\n- 1 cup chopped dried apricots\n- Hot cooked couscous\n\n## TODO:\n\n1. Place the chicken, onion and carrots in a 3- or 4-qt. slow cooker coated with cooking spray. In a small bowl, combine the apple juice, garlic, salt, cinnamon and pepper; pour over vegetables.\n2. Cover and cook on low for 6-8 hours or until chicken is tender.\n3. Remove chicken from slow cooker; shred meat with two forks. Skim fat from cooking juices; stir in apricots. Return shredded chicken to slow cooker; heat though. Serve with couscous.\n"
+}

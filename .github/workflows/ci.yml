@@ -1,0 +1,45 @@
+name: ci
+
+# The Python in this repo is a permanent build-time toolchain, not a leftover: it
+# generates Tables.kt for the Android app and owns the goldens the Kotlin extractor
+# is diffed against. That makes a silently-broken scripts/ a build failure rather
+# than a nuisance, so this workflow runs the suite and the golden drift check on
+# every push.
+
+on:
+  push:
+    branches: [main, master, multiple-URLs-script]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  python:
+    name: Reference implementation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run the suite
+        run: python -m unittest discover -s tests -v
+
+      - name: Goldens are in sync with the code
+        # Deliberately not "regenerate and commit": regenerating to make this pass
+        # would write whatever regression caused the drift into the contract.
+        run: python scripts/make_goldens.py --check
+
+      - name: Corpus lint has no new findings
+        # Fails only when the count grows past the known backlog, so a new style
+        # violation cannot be committed quietly alongside a real fix.
+        run: python scripts/lint_corpus.py --quiet

@@ -1,3 +1,11 @@
+---
+source: https://www.detsoteliv.no/oppskrift/rips-og-solbaersaft
+tier: heading heuristic
+fetched: 2026-10-05
+category: unclassified
+reviewed: false
+---
+
 # Rips- og solbærsaft
 
 ## Ingredients:

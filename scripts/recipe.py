@@ -282,9 +282,16 @@ def decode_response(response: requests.Response) -> str:
         return response.text
 
 
+# The corpus is Norwegian, so the pages we want are the Norwegian ones. Saying
+# en-US first made several sites answer in English or redirect to a locale page.
+ACCEPT_LANGUAGE = "nb-NO,nb;q=0.9,en;q=0.8"
+
+
 def fetch(url: str, timeout: int = 30) -> str:
     response = requests.get(
-        url, headers={"User-Agent": USER_AGENT, "Accept-Language": "en-US,en;q=0.9"}, timeout=timeout
+        url,
+        headers={"User-Agent": USER_AGENT, "Accept-Language": ACCEPT_LANGUAGE},
+        timeout=timeout,
     )
     response.raise_for_status()
     return decode_response(response)
@@ -658,8 +665,32 @@ def find_conflicts(ingredient_lines: list[str], step_lines: list[str]) -> list[s
 # ------------------------------------------------------------------- rendering
 
 
-def render(title: str, ingredient_groups: Groups, step_groups: Groups) -> str:
-    blocks: list[str] = [f"# {title}"]
+def render(
+    title: str,
+    ingredient_groups: Groups,
+    step_groups: Groups,
+    meta: dict[str, str] | None = None,
+) -> str:
+    """Write the note. `meta` becomes YAML frontmatter above the title.
+
+    The frontmatter is what makes a draft re-extractable: without a source URL
+    there is no way to tell which page a note came from, so it cannot be
+    updated, deduplicated, or rebuilt after a fix to the extractor. It is
+    optional so the hand-written notes (which predate it) still parse.
+    """
+    blocks: list[str] = []
+
+    if meta:
+        front = ["---"]
+        # A fixed key order keeps diffs between two runs of the same page quiet.
+        for key in ("source", "tier", "fetched", "category", "reviewed"):
+            value = meta.get(key)
+            if value not in (None, ""):
+                front.append(f"{key}: {value}")
+        front.append("---")
+        blocks.append("\n".join(front))
+
+    blocks.append(f"# {title}")
 
     ingredients = ["## Ingredients:", ""]
     if not ingredient_groups:
@@ -690,6 +721,56 @@ def render(title: str, ingredient_groups: Groups, step_groups: Groups) -> str:
 
 
 # ------------------------------------------------------------------ extraction
+
+
+def _instruction_lines(entry: object) -> list[str]:
+    """Flatten one recipeInstructions entry into plain step strings.
+
+    Entries are not always strings. A HowToStep is a dict with "text", and a
+    HowToSection is a dict with a "name" and its own "itemListElement" list of
+    further entries -- nesting arbitrarily deep. Reading the nested items as if
+    they were strings used to dump raw Python dict reprs into the note, so this
+    recurses and takes text from whichever key the entry actually has.
+    """
+    if isinstance(entry, str):
+        return [clean_text(entry)] if clean_text(entry) else []
+    if not isinstance(entry, dict):
+        return []
+
+    nested = entry.get("itemListElement")
+    if isinstance(nested, list):
+        lines: list[str] = []
+        for item in nested:
+            lines.extend(_instruction_lines(item))
+        return lines
+    if isinstance(nested, str):
+        return [clean_text(nested)] if clean_text(nested) else []
+
+    text = clean_text(entry.get("text") or "")
+    return [text] if text else []
+
+
+def _instruction_groups(raw_steps: list) -> Groups:
+    """Turn recipeInstructions into groups, starting a group per named section."""
+    groups: Groups = []
+    for entry in raw_steps:
+        name = ""
+        if isinstance(entry, dict):
+            name = clean_text(entry.get("name") or "")
+        lines = _instruction_lines(entry)
+        if not lines:
+            continue
+        if name and groups:
+            groups.append((name, lines))
+        elif name:
+            groups.append((name, lines))
+        else:
+            if groups:
+                heading, existing = groups[-1]
+                groups[-1] = (heading, existing + lines)
+            else:
+                groups.append(("", lines))
+    return groups
 
 
 def from_schema(soup: BeautifulSoup) -> tuple[str, Groups, Groups] | None:
@@ -744,25 +825,9 @@ def schema_parts(soup: BeautifulSoup) -> tuple[str, Groups, Groups]:
                 groups_ing.append(("", [clean_text(i) for i in ingredients]))
 
             raw_steps = recipe.get("recipeInstructions") or []
-            steps: list[str] = []
             if isinstance(raw_steps, str):
                 raw_steps = [raw_steps]
-            for entry in raw_steps:
-                if isinstance(entry, str):
-                    steps.append(clean_text(entry))
-                elif isinstance(entry, dict):
-                    if entry.get("name") and entry.get("itemListElement"):
-                        lines = [
-                            re.sub(r"<[^>]+>", " ", clean_text(item)).strip()
-                            for item in entry["itemListElement"]
-                        ]
-                        steps.append(f"{entry['name']}: " + " ".join(lines))
-                    else:
-                        text = clean_text(entry.get("text", ""))
-                        if text:
-                            steps.append(text)
-            if steps:
-                groups_steps.append(("", steps))
+            groups_steps.extend(_instruction_groups(raw_steps))
 
     if not groups_ing:
         items = soup.select("[itemprop=recipeIngredient], [itemprop=ingredients] li")
@@ -921,7 +986,7 @@ def extract(html: str) -> tuple[str, Groups, Groups, str]:
 
 # ---------------------------------------------------------------------- lint
 
-def lint(path: Path) -> list[str]:
+def lint(path: Path, require_provenance: bool = False) -> list[str]:
     text = path.read_text(encoding="utf-8")
     problems: list[str] = []
 
@@ -973,6 +1038,59 @@ def lint(path: Path) -> list[str]:
         if number != numbers[index - 1] + 1 and number != 1:
             problems.append(f"step numbering jumps from {numbers[index - 1]} to {number}")
             break
+
+    problems.extend(lint_provenance(text, require_provenance=require_provenance))
+    return problems
+
+
+_FRONTMATTER_KEY = re.compile(r"^([a-z]+):\s*(.*)$")
+
+
+def parse_frontmatter(text: str) -> dict[str, str]:
+    """Read the leading `---` block. Empty for hand-written notes that predate it."""
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return {}
+    meta: dict[str, str] = {}
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return meta
+        match = _FRONTMATTER_KEY.match(line)
+        if match:
+            meta[match.group(1)] = match.group(2).strip()
+    return {}
+
+
+def lint_provenance(text: str, require_provenance: bool = False) -> list[str]:
+    """A note with no source URL cannot be re-extracted or updated.
+
+    Missing frontmatter is only a suggestion, not an error: the hand-written
+    recipes predate it, and most of the generated corpus predates it too.
+    Frontmatter that is present but broken is a real problem, since it looks
+    like it should work.
+
+    Pass ``require_provenance=True`` to turn the missing-source suggestion into
+    a finding. That is the right setting for output the extractor just produced
+    and the wrong one for a corpus sweep, where it would turn every legacy note
+    red at once and hide the findings that can still be acted on.
+    """
+    problems: list[str] = []
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        if require_provenance:
+            problems.append("no 'source:' frontmatter: cannot tell which page this came from")
+        return problems
+
+    meta = parse_frontmatter(text)
+    if not meta:
+        problems.append("frontmatter block is not closed or has no keys")
+        return problems
+    if not meta.get("source"):
+        problems.append("frontmatter has no 'source:' URL")
+    elif not meta["source"].startswith(("http://", "https://")):
+        problems.append(f"source is not a URL: {meta['source']!r}")
+    if meta.get("tier") == "none":
+        problems.append("tier 'none': nothing was extracted from this page")
     return problems
 
 
@@ -1286,7 +1404,25 @@ def run(args: argparse.Namespace) -> int:
                 notes.extend(line_notes)
             converted_steps.append((heading, converted))
 
-        markdown = render(args.title or title, converted_ing, converted_steps)
+        markdown = render(
+            args.title or title,
+            converted_ing,
+            converted_steps,
+            meta={
+                "source": url,
+                "tier": tier,
+                "fetched": time.strftime("%Y-%m-%d"),
+                # Only a batch knows where the note landed; a single URL is
+                # written to the repo root for the author to file by hand.
+                "category": (
+                    (args.folder or classify.classify_category(title_hint or title)[0])
+                    if batch_mode
+                    else ""
+                ),
+                # Every generated note is a draft until someone edits it.
+                "reviewed": "false",
+            },
+        )
 
         to_stdout = args.output is not None and str(args.output) == "-"
         if to_stdout:

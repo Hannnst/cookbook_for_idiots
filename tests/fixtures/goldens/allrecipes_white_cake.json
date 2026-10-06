@@ -1,0 +1,103 @@
+{
+  "fixture": "allrecipes_white_cake",
+  "source": "https://www.allrecipes.com/recipe/17481/simple-white-cake/",
+  "captured": "2026-10-05",
+  "title": "Simple White Cake",
+  "tier": "schema.org/Recipe",
+  "ingredient_groups": [
+    {
+      "heading": "",
+      "lines": [
+        "1 cup white sugar",
+        "0.5 cup unsalted butter",
+        "2 large eggs",
+        "2 teaspoons vanilla extract",
+        "1.5 cups all-purpose flour",
+        "1.75 teaspoons baking powder",
+        "1/4 teaspoon table salt",
+        "0.5 cup milk"
+      ]
+    }
+  ],
+  "step_groups": [
+    {
+      "heading": "",
+      "lines": [
+        "Gather all ingredients. Preheat the oven to 350 degrees F (175 degrees C). Grease and flour a 9-inch square cake pan.",
+        "Beat sugar and butter together in a mixing bowl with an electric mixer until lighter in color and fluffy, 3 to 4 minutes. Add eggs, one at a time, beating briefly after each addition, 30 seconds total. Mix in vanilla, about 15 seconds.",
+        "Whisk flour, baking powder, and salt in a separate bowl. With mixer on low speed, add flour mixture to butter mixture in 3 batches, alternating with milk, beginning and ending with flour. Mix just until combined stopping to scrape down sides if needed, about 2 minutes.",
+        "Spread cake batter into the prepared pan.",
+        "Bake cake in the preheated oven until a toothpick inserted into the center comes out clean, about 30 minutes.",
+        "Remove cake from the oven and let cool in pan on a wire rack for 10 minutes. Invert cake onto wire rack; remove pan and let cake cool completely before frosting. Enjoy!"
+      ]
+    }
+  ],
+  "conversion_notes": [
+    [
+      "1 cup white sugar",
+      "200 g white sugar",
+      "1 cup -> 200 g (by density)"
+    ],
+    [
+      "0.5 cup unsalted butter",
+      "115 g unsalted butter",
+      "0.5 cup -> 115 g (by density)"
+    ],
+    [
+      "2 large eggs",
+      "2 large eggs"
+    ],
+    [
+      "2 teaspoons vanilla extract",
+      "10 ml vanilla extract",
+      "2 teaspoons -> 10 ml"
+    ],
+    [
+      "1.5 cups all-purpose flour",
+      "180 g all-purpose flour",
+      "1.5 cups -> 180 g (by density)"
+    ],
+    [
+      "1.75 teaspoons baking powder",
+      "1.75 teaspoons baking powder",
+      "kept as-is: no density for 'teaspoons' of this ingredient"
+    ],
+    [
+      "1/4 teaspoon table salt",
+      "2 g table salt",
+      "1/4 teaspoon -> 2 g (by density)"
+    ],
+    [
+      "0.5 cup milk",
+      "1.2 dl milk",
+      "0.5 cup -> 1.2 dl"
+    ],
+    [
+      "Gather all ingredients. Preheat the oven to 350 degrees F (175 degrees C). Grease and flour a 9-inch square cake pan.",
+      "Gather all ingredients. Preheat the oven to 175°C (347°F) (175°C (347°F)). Grease and flour a 9-inch square cake pan.",
+      "350 degrees F -> 175°C (347°F)",
+      "175 degrees C -> 175°C (347°F)"
+    ],
+    [
+      "Beat sugar and butter together in a mixing bowl with an electric mixer until lighter in color and fluffy, 3 to 4 minutes. Add eggs, one at a time, beating briefly after each addition, 30 seconds total. Mix in vanilla, about 15 seconds.",
+      "Beat sugar and butter together in a mixing bowl with an electric mixer until lighter in color and fluffy, 3 to 4 minutes. Add eggs, one at a time, beating briefly after each addition, 30 seconds total. Mix in vanilla, about 15 seconds."
+    ],
+    [
+      "Whisk flour, baking powder, and salt in a separate bowl. With mixer on low speed, add flour mixture to butter mixture in 3 batches, alternating with milk, beginning and ending with flour. Mix just until combined stopping to scrape down sides if needed, about 2 minutes.",
+      "Whisk flour, baking powder, and salt in a separate bowl. With mixer on low speed, add flour mixture to butter mixture in 3 batches, alternating with milk, beginning and ending with flour. Mix just until combined stopping to scrape down sides if needed, about 2 minutes."
+    ],
+    [
+      "Spread cake batter into the prepared pan.",
+      "Spread cake batter into the prepared pan."
+    ],
+    [
+      "Bake cake in the preheated oven until a toothpick inserted into the center comes out clean, about 30 minutes.",
+      "Bake cake in the preheated oven until a toothpick inserted into the center comes out clean, about 30 minutes."
+    ],
+    [
+      "Remove cake from the oven and let cool in pan on a wire rack for 10 minutes. Invert cake onto wire rack; remove pan and let cake cool completely before frosting. Enjoy!",
+      "Remove cake from the oven and let cool in pan on a wire rack for 10 minutes. Invert cake onto wire rack; remove pan and let cake cool completely before frosting. Enjoy!"
+    ]
+  ],
+  "markdown": "---\nsource: https://www.allrecipes.com/recipe/17481/simple-white-cake/\ntier: schema.org/Recipe\nreviewed: false\n---\n\n# Simple White Cake\n\n## Ingredients:\n\n- 200 g white sugar\n- 115 g unsalted butter\n- 2 large eggs\n- 10 ml vanilla extract\n- 180 g all-purpose flour\n- 1.75 teaspoons baking powder\n- 2 g table salt\n- 1.2 dl milk\n\n## TODO:\n\n1. Gather all ingredients. Preheat the oven to 175°C (347°F) (175°C (347°F)). Grease and flour a 9-inch square cake pan.\n2. Beat sugar and butter together in a mixing bowl with an electric mixer until lighter in color and fluffy, 3 to 4 minutes. Add eggs, one at a time, beating briefly after each addition, 30 seconds total. Mix in vanilla, about 15 seconds.\n3. Whisk flour, baking powder, and salt in a separate bowl. With mixer on low speed, add flour mixture to butter mixture in 3 batches, alternating with milk, beginning and ending with flour. Mix just until combined stopping to scrape down sides if needed, about 2 minutes.\n4. Spread cake batter into the prepared pan.\n5. Bake cake in the preheated oven until a toothpick inserted into the center comes out clean, about 30 minutes.\n6. Remove cake from the oven and let cool in pan on a wire rack for 10 minutes. Invert cake onto wire rack; remove pan and let cake cool completely before frosting. Enjoy!\n"
+}

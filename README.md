@@ -131,3 +131,46 @@ structured recipe data at all, which is most of them.
 Cups become grams only for dry ingredients with a known density. Liquids become `dl`/`ml`.
 Anything else — `2 teaspoons baking powder`, `4 Earl Grey tea bags`, `a handful of
 parsley` — is left exactly as written, because a gram figure would be a guess.
+
+## Development
+
+The Python here is the **reference implementation** and a permanent build-time
+toolchain. It does not ship in the Android app — that is a Kotlin + Jsoup rewrite (see
+[APP_IMPLEMENTATION_PLAN.md](APP_IMPLEMENTATION_PLAN.md)) — but it is still needed to
+build it, because the bilingual vocabulary tables are generated from `scripts/`.
+
+```
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+| Command | What it does |
+|---|---|
+| `.venv/bin/python -m unittest discover -s tests` | the full suite |
+| `.venv/bin/python scripts/make_goldens.py --check` | fail if any golden is stale |
+| `.venv/bin/python scripts/make_goldens.py` | regenerate the goldens (read the diff!) |
+| `.venv/bin/python scripts/lint_corpus.py` | lint every note; fails only if findings grew |
+| `.venv/bin/python recipe.py --lint-all` | the interactive version — lists every finding |
+
+The corpus currently carries 16 known lint findings in notes generated before the
+current extractor existed. `recipe.py --lint-all` exits non-zero while they are there,
+which is why CI uses `lint_corpus.py` instead: it compares against a baseline so it
+fails when the count *grows*, and not on the backlog.
+
+### Fixtures and goldens
+
+`tests/fixtures/pages/*.html` are trimmed copies of real recipe pages, and
+`tests/fixtures/goldens/*.json` record exactly what the extractor produces for each one:
+the title, the extraction tier, the raw groups, every unit-conversion note, and the
+finished markdown.
+
+They are the contract the Kotlin port is written against, so treat them as a real
+specification:
+
+- To add a fixture: `.venv/bin/python scripts/capture_fixture.py NAME URL`. It verifies
+  the trimmed page extracts identically to the full page before saving, so a fixture
+  always reproduces what the live site produced.
+- To accept an intended change, regenerate the goldens — and read the diff. Regenerating
+  from a broken run writes the regression into the contract.
+- When Python and Kotlin disagree, decide which one is correct and edit the golden by
+  hand. Never regenerate goldens wholesale from Kotlin.

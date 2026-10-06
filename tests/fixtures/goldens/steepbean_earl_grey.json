@@ -1,0 +1,256 @@
+{
+  "fixture": "steepbean_earl_grey",
+  "source": "https://www.steepbean.no/oppskrifter/earl-grey-tea-cake",
+  "captured": "2026-10-01",
+  "title": "",
+  "tier": "heading heuristic",
+  "ingredient_groups": [
+    {
+      "heading": "For the Cake",
+      "lines": [
+        "2 cups all-purpose flour",
+        "1½ cups granulated sugar",
+        "½ cup unsalted butter, softened",
+        "3 large eggs, room temperature",
+        "1 cup whole milk, warmed",
+        "4 Earl Grey tea bags",
+        "2 teaspoons baking powder",
+        "½ teaspoon salt",
+        "1 teaspoon vanilla extract",
+        "2 tablespoons loose Earl Grey tea leaves, finely ground"
+      ]
+    },
+    {
+      "heading": "For the Earl Grey Frosting",
+      "lines": [
+        "8 oz cream cheese, softened",
+        "½ cup unsalted butter, softened",
+        "3 cups powdered sugar, sifted",
+        "2 tablespoons heavy cream",
+        "2 Earl Grey tea bags, contents removed and finely ground",
+        "1 teaspoon vanilla extract",
+        "Pinch of salt"
+      ]
+    }
+  ],
+  "step_groups": [
+    {
+      "heading": "Prep the Earl Grey Tea",
+      "lines": [
+        "We begin by warming 1/2 cup of whole milk in our small saucepan over medium heat until steam begins to rise. Remove the milk from heat and steep 2 Earl Grey tea bags for 30 minutes to extract maximum flavor.",
+        "Press the bags gently against the side of the pan before discarding them. Allow the infused milk to cool to room temperature while we prepare our butter mixture.",
+        "In the same saucepan we melt 1/2 cup of unsalted butter over low heat. Once melted we add 1 tablespoon of finely ground loose Earl Grey tea leaves directly to the warm butter.",
+        "Let this mixture steep for 15 minutes off the heat then strain through our fine mesh strainer to remove the tea particles. We want the butter to retain that distinctive bergamot essence without any gritty texture."
+      ]
+    },
+    {
+      "heading": "Make the Cake Batter",
+      "lines": [
+        "Using our electric mixer we cream the tea-infused butter with 3/4 cup granulated sugar until the mixture becomes light and fluffy. This process takes about 3 to 4 minutes on medium speed.",
+        "We add our 2 large eggs one at a time beating well after each addition. The vanilla extract goes in next along with our cooled Earl Grey milk.",
+        "In a separate bowl we whisk together 1 1/4 cups all-purpose flour 1 1/2 teaspoons baking powder and 1/2 teaspoon salt. We add these dry ingredients to our wet mixture in three additions alternating with gentle folding motions using our rubber spatula.",
+        "Mix just until the flour disappears to avoid overworking the batter."
+      ]
+    },
+    {
+      "heading": "Bake the Cake",
+      "lines": [
+        "Our preheated 325°F oven provides the perfect gentle heat for even baking. We pour the batter into our prepared 8-inch round cake pan that we’ve lined with parchment paper and greased.",
+        "Smooth the top gently with our spatula to ensure even distribution.",
+        "The cake bakes for 40 to 45 minutes until a toothpick inserted in the center comes out with just a few moist crumbs. We avoid overbaking to maintain the tender crumb texture that makes this cake special.",
+        "Once done we let it cool in the pan for 10 minutes before turning it out onto our cooling rack."
+      ]
+    },
+    {
+      "heading": "Prepare the Frosting",
+      "lines": [
+        "For our Earl Grey frosting we beat 4 ounces of softened cream cheese with 4 tablespoons of softened butter using our electric mixer until completely smooth. Gradually we add 2 cups of powdered sugar beating until fluffy and well combined.",
+        "We incorporate 2 tablespoons of heavy cream 1 teaspoon of ground Earl Grey tea 1 teaspoon of vanilla extract and a pinch of salt.",
+        "Beat the mixture for an additional 2 minutes until it reaches a spreadable consistency with visible tea specks that add visual appeal and flavor bursts."
+      ]
+    },
+    {
+      "heading": "Assemble the Cake",
+      "lines": [
+        "Once our cake has cooled completely we place it on our serving plate. Using an offset spatula or knife we spread the Earl Grey frosting evenly across the top of the cake.",
+        "We can create decorative swirls or keep it smooth depending on our preference.",
+        "For an elegant finishing touch we lightly dust the frosted cake with additional ground Earl Grey tea or garnish with a few whole tea leaves.",
+        "The assembled cake benefits from resting for 30 minutes before serving to allow the flavors to meld together perfectly."
+      ]
+    }
+  ],
+  "conversion_notes": [
+    [
+      "2 cups all-purpose flour",
+      "240 g all-purpose flour",
+      "2 cups -> 240 g (by density)"
+    ],
+    [
+      "1½ cups granulated sugar",
+      "300 g granulated sugar",
+      "1 1/2 cups -> 300 g (by density)"
+    ],
+    [
+      "½ cup unsalted butter, softened",
+      "115 g unsalted butter, softened",
+      "1/2 cup -> 115 g (by density)"
+    ],
+    [
+      "3 large eggs, room temperature",
+      "3 large eggs, room temperature"
+    ],
+    [
+      "1 cup whole milk, warmed",
+      "2.4 dl whole milk, warmed",
+      "1 cup -> 2.4 dl"
+    ],
+    [
+      "4 Earl Grey tea bags",
+      "4 Earl Grey tea bags"
+    ],
+    [
+      "2 teaspoons baking powder",
+      "2 teaspoons baking powder",
+      "kept as-is: no density for 'teaspoons' of this ingredient"
+    ],
+    [
+      "½ teaspoon salt",
+      "3 g salt",
+      "1/2 teaspoon -> 3 g (by density)"
+    ],
+    [
+      "1 teaspoon vanilla extract",
+      "5 ml vanilla extract",
+      "1 teaspoon -> 5 ml"
+    ],
+    [
+      "2 tablespoons loose Earl Grey tea leaves, finely ground",
+      "2 tablespoons loose Earl Grey tea leaves, finely ground",
+      "kept as-is: no density for 'tablespoons' of this ingredient"
+    ],
+    [
+      "8 oz cream cheese, softened",
+      "225 g cream cheese, softened",
+      "8 oz -> 225 g"
+    ],
+    [
+      "½ cup unsalted butter, softened",
+      "115 g unsalted butter, softened",
+      "1/2 cup -> 115 g (by density)"
+    ],
+    [
+      "3 cups powdered sugar, sifted",
+      "360 g powdered sugar, sifted",
+      "3 cups -> 360 g (by density)"
+    ],
+    [
+      "2 tablespoons heavy cream",
+      "0.3 dl heavy cream",
+      "2 tablespoons -> 0.3 dl"
+    ],
+    [
+      "2 Earl Grey tea bags, contents removed and finely ground",
+      "2 Earl Grey tea bags, contents removed and finely ground"
+    ],
+    [
+      "1 teaspoon vanilla extract",
+      "5 ml vanilla extract",
+      "1 teaspoon -> 5 ml"
+    ],
+    [
+      "Pinch of salt",
+      "Pinch of salt"
+    ],
+    [
+      "We begin by warming 1/2 cup of whole milk in our small saucepan over medium heat until steam begins to rise. Remove the milk from heat and steep 2 Earl Grey tea bags for 30 minutes to extract maximum flavor.",
+      "We begin by warming 1.2 dl of whole milk in our small saucepan over medium heat until steam begins to rise. Remove the milk from heat and steep 2 Earl Grey tea bags for 30 minutes to extract maximum flavor.",
+      "1/2 cup -> 1.2 dl"
+    ],
+    [
+      "Press the bags gently against the side of the pan before discarding them. Allow the infused milk to cool to room temperature while we prepare our butter mixture.",
+      "Press the bags gently against the side of the pan before discarding them. Allow the infused milk to cool to room temperature while we prepare our butter mixture."
+    ],
+    [
+      "In the same saucepan we melt 1/2 cup of unsalted butter over low heat. Once melted we add 1 tablespoon of finely ground loose Earl Grey tea leaves directly to the warm butter.",
+      "In the same saucepan we melt 115 g of unsalted butter over low heat. Once melted we add 1 tablespoon of finely ground loose Earl Grey tea leaves directly to the warm butter.",
+      "1/2 cup -> 115 g (by density)",
+      "kept as-is: no density for 'tablespoon' of this ingredient"
+    ],
+    [
+      "Let this mixture steep for 15 minutes off the heat then strain through our fine mesh strainer to remove the tea particles. We want the butter to retain that distinctive bergamot essence without any gritty texture.",
+      "Let this mixture steep for 15 minutes off the heat then strain through our fine mesh strainer to remove the tea particles. We want the butter to retain that distinctive bergamot essence without any gritty texture."
+    ],
+    [
+      "Using our electric mixer we cream the tea-infused butter with 3/4 cup granulated sugar until the mixture becomes light and fluffy. This process takes about 3 to 4 minutes on medium speed.",
+      "Using our electric mixer we cream the tea-infused butter with 150 g granulated sugar until the mixture becomes light and fluffy. This process takes about 3 to 4 minutes on medium speed.",
+      "3/4 cup -> 150 g (by density)"
+    ],
+    [
+      "We add our 2 large eggs one at a time beating well after each addition. The vanilla extract goes in next along with our cooled Earl Grey milk.",
+      "We add our 2 large eggs one at a time beating well after each addition. The vanilla extract goes in next along with our cooled Earl Grey milk."
+    ],
+    [
+      "In a separate bowl we whisk together 1 1/4 cups all-purpose flour 1 1/2 teaspoons baking powder and 1/2 teaspoon salt. We add these dry ingredients to our wet mixture in three additions alternating with gentle folding motions using our rubber spatula.",
+      "In a separate bowl we whisk together 150 g all-purpose flour 1 1/2 teaspoons baking powder and 3 g salt. We add these dry ingredients to our wet mixture in three additions alternating with gentle folding motions using our rubber spatula.",
+      "1 1/4 cups -> 150 g (by density)",
+      "kept as-is: no density for 'teaspoons' of this ingredient",
+      "1/2 teaspoon -> 3 g (by density)"
+    ],
+    [
+      "Mix just until the flour disappears to avoid overworking the batter.",
+      "Mix just until the flour disappears to avoid overworking the batter."
+    ],
+    [
+      "Our preheated 325°F oven provides the perfect gentle heat for even baking. We pour the batter into our prepared 8-inch round cake pan that we’ve lined with parchment paper and greased.",
+      "Our preheated 165°C (329°F) oven provides the perfect gentle heat for even baking. We pour the batter into our prepared 8-inch round cake pan that we’ve lined with parchment paper and greased.",
+      "325°F -> 165°C (329°F)"
+    ],
+    [
+      "Smooth the top gently with our spatula to ensure even distribution.",
+      "Smooth the top gently with our spatula to ensure even distribution."
+    ],
+    [
+      "The cake bakes for 40 to 45 minutes until a toothpick inserted in the center comes out with just a few moist crumbs. We avoid overbaking to maintain the tender crumb texture that makes this cake special.",
+      "The cake bakes for 40 to 45 minutes until a toothpick inserted in the center comes out with just a few moist crumbs. We avoid overbaking to maintain the tender crumb texture that makes this cake special."
+    ],
+    [
+      "Once done we let it cool in the pan for 10 minutes before turning it out onto our cooling rack.",
+      "Once done we let it cool in the pan for 10 minutes before turning it out onto our cooling rack."
+    ],
+    [
+      "For our Earl Grey frosting we beat 4 ounces of softened cream cheese with 4 tablespoons of softened butter using our electric mixer until completely smooth. Gradually we add 2 cups of powdered sugar beating until fluffy and well combined.",
+      "For our Earl Grey frosting we beat 115 g of softened cream cheese with 55 g of softened butter using our electric mixer until completely smooth. Gradually we add 240 g of powdered sugar beating until fluffy and well combined.",
+      "4 ounces -> 115 g",
+      "4 tablespoons -> 55 g (by density)",
+      "2 cups -> 240 g (by density)"
+    ],
+    [
+      "We incorporate 2 tablespoons of heavy cream 1 teaspoon of ground Earl Grey tea 1 teaspoon of vanilla extract and a pinch of salt.",
+      "We incorporate 0.3 dl of heavy cream 1 teaspoon of ground Earl Grey tea 5 ml of vanilla extract and a pinch of salt.",
+      "2 tablespoons -> 0.3 dl",
+      "kept as-is: no density for 'teaspoon' of this ingredient",
+      "1 teaspoon -> 5 ml"
+    ],
+    [
+      "Beat the mixture for an additional 2 minutes until it reaches a spreadable consistency with visible tea specks that add visual appeal and flavor bursts.",
+      "Beat the mixture for an additional 2 minutes until it reaches a spreadable consistency with visible tea specks that add visual appeal and flavor bursts."
+    ],
+    [
+      "Once our cake has cooled completely we place it on our serving plate. Using an offset spatula or knife we spread the Earl Grey frosting evenly across the top of the cake.",
+      "Once our cake has cooled completely we place it on our serving plate. Using an offset spatula or knife we spread the Earl Grey frosting evenly across the top of the cake."
+    ],
+    [
+      "We can create decorative swirls or keep it smooth depending on our preference.",
+      "We can create decorative swirls or keep it smooth depending on our preference."
+    ],
+    [
+      "For an elegant finishing touch we lightly dust the frosted cake with additional ground Earl Grey tea or garnish with a few whole tea leaves.",
+      "For an elegant finishing touch we lightly dust the frosted cake with additional ground Earl Grey tea or garnish with a few whole tea leaves."
+    ],
+    [
+      "The assembled cake benefits from resting for 30 minutes before serving to allow the flavors to meld together perfectly.",
+      "The assembled cake benefits from resting for 30 minutes before serving to allow the flavors to meld together perfectly."
+    ]
+  ],
+  "markdown": "---\nsource: https://www.steepbean.no/oppskrifter/earl-grey-tea-cake\ntier: heading heuristic\nreviewed: false\n---\n\n# \n\n## Ingredients:\n\n### For the Cake\n\n- 240 g all-purpose flour\n- 300 g granulated sugar\n- 115 g unsalted butter, softened\n- 3 large eggs, room temperature\n- 2.4 dl whole milk, warmed\n- 4 Earl Grey tea bags\n- 2 teaspoons baking powder\n- 3 g salt\n- 5 ml vanilla extract\n- 2 tablespoons loose Earl Grey tea leaves, finely ground\n\n### For the Earl Grey Frosting\n\n- 225 g cream cheese, softened\n- 115 g unsalted butter, softened\n- 360 g powdered sugar, sifted\n- 0.3 dl heavy cream\n- 2 Earl Grey tea bags, contents removed and finely ground\n- 5 ml vanilla extract\n- Pinch of salt\n\n## TODO:\n\n### Prep the Earl Grey Tea\n\n1. We begin by warming 1.2 dl of whole milk in our small saucepan over medium heat until steam begins to rise. Remove the milk from heat and steep 2 Earl Grey tea bags for 30 minutes to extract maximum flavor.\n2. Press the bags gently against the side of the pan before discarding them. Allow the infused milk to cool to room temperature while we prepare our butter mixture.\n3. In the same saucepan we melt 115 g of unsalted butter over low heat. Once melted we add 1 tablespoon of finely ground loose Earl Grey tea leaves directly to the warm butter.\n4. Let this mixture steep for 15 minutes off the heat then strain through our fine mesh strainer to remove the tea particles. We want the butter to retain that distinctive bergamot essence without any gritty texture.\n\n### Make the Cake Batter\n\n5. Using our electric mixer we cream the tea-infused butter with 150 g granulated sugar until the mixture becomes light and fluffy. This process takes about 3 to 4 minutes on medium speed.\n6. We add our 2 large eggs one at a time beating well after each addition. The vanilla extract goes in next along with our cooled Earl Grey milk.\n7. In a separate bowl we whisk together 150 g all-purpose flour 1 1/2 teaspoons baking powder and 3 g salt. We add these dry ingredients to our wet mixture in three additions alternating with gentle folding motions using our rubber spatula.\n8. Mix just until the flour disappears to avoid overworking the batter.\n\n### Bake the Cake\n\n9. Our preheated 165°C (329°F) oven provides the perfect gentle heat for even baking. We pour the batter into our prepared 8-inch round cake pan that we’ve lined with parchment paper and greased.\n10. Smooth the top gently with our spatula to ensure even distribution.\n11. The cake bakes for 40 to 45 minutes until a toothpick inserted in the center comes out with just a few moist crumbs. We avoid overbaking to maintain the tender crumb texture that makes this cake special.\n12. Once done we let it cool in the pan for 10 minutes before turning it out onto our cooling rack.\n\n### Prepare the Frosting\n\n13. For our Earl Grey frosting we beat 115 g of softened cream cheese with 55 g of softened butter using our electric mixer until completely smooth. Gradually we add 240 g of powdered sugar beating until fluffy and well combined.\n14. We incorporate 0.3 dl of heavy cream 1 teaspoon of ground Earl Grey tea 5 ml of vanilla extract and a pinch of salt.\n15. Beat the mixture for an additional 2 minutes until it reaches a spreadable consistency with visible tea specks that add visual appeal and flavor bursts.\n\n### Assemble the Cake\n\n16. Once our cake has cooled completely we place it on our serving plate. Using an offset spatula or knife we spread the Earl Grey frosting evenly across the top of the cake.\n17. We can create decorative swirls or keep it smooth depending on our preference.\n18. For an elegant finishing touch we lightly dust the frosted cake with additional ground Earl Grey tea or garnish with a few whole tea leaves.\n19. The assembled cake benefits from resting for 30 minutes before serving to allow the flavors to meld together perfectly.\n"
+}

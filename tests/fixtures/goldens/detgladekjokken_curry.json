@@ -1,0 +1,148 @@
+{
+  "fixture": "detgladekjokken_curry",
+  "source": "https://detgladekjokken.no/oppskrift/currygryte-med-kikerter/",
+  "captured": "2026-10-05",
+  "title": "Currygryte med kikerter",
+  "tier": "heading heuristic",
+  "ingredient_groups": [
+    {
+      "heading": "Ingredienser",
+      "lines": [
+        "1 stk rødløk",
+        "1 stk spisspaprika",
+        "3 cm ingefær",
+        "2 fedd hvitløk",
+        "1 boks kikerter à 250 gram (avrent vekt)",
+        "1 boks røde linser à 230 gram (avrent vekt)",
+        "Nøytral olje",
+        "3 ts rød karripasta",
+        "1 boks hermetiske tomater à 400 gram",
+        "2 dl kokosmelk eller fløte",
+        "100 gram sukkererter",
+        "3 stk vårløk",
+        "1/2 stk lime",
+        "Salt og pepper",
+        "Koriander (valgfritt)",
+        "Tilbehør",
+        "Ris eller nanbrød"
+      ]
+    }
+  ],
+  "step_groups": [
+    {
+      "heading": "Fremgangsmåte",
+      "lines": [
+        "Start med å koke risen, så er den klar innen gryten settes på bordet.",
+        "Skjær opp grønnsakene slik at du har dem klare. Skrell rødløken og skjær den i tynne båter. Skjær paprikaen i halve ringer, skrell og riv ingefæren fint på et råkostjern og skrell og finhakk feddene med hvitløk.",
+        "Hell av vannet av kikertene og linsene og skyll de i et dørslag.",
+        "Ha nøytral olje i en panne eller gryte og surr oppskåret løk, paprika og ingefær noen minutter til løken begynner å bli myk. Ha så i hvitløken og surr videre litt til. Lag en liten grop i bunnen av gryten eller pannen og fres noen teskjeer karripasta i et par minutter.",
+        "Tilsett en boks hermetiske tomater, kokosmelk og kok opp. Ha også i kikertene og linsene og la curryen småputre i 5-10 minutter slik at smakene får satt seg.",
+        "Skyll og skjær sukkerertene i biter og kutt vårløken i tynne ringer. Når gryten nærmer seg serveringsklar skvis jeg i saften fra en halv lime, og har i sukkerertene. La gryten koke et lite minutt, og smak deg frem med salt og pepper.",
+        "Strø over vårløk og koriander rett før servering. Server currygryten med ris eller nanbrød til."
+      ]
+    }
+  ],
+  "conversion_notes": [
+    [
+      "1 stk rødløk",
+      "1 stk rødløk"
+    ],
+    [
+      "1 stk spisspaprika",
+      "1 stk spisspaprika"
+    ],
+    [
+      "3 cm ingefær",
+      "3 cm ingefær"
+    ],
+    [
+      "2 fedd hvitløk",
+      "2 fedd hvitløk"
+    ],
+    [
+      "1 boks kikerter à 250 gram (avrent vekt)",
+      "1 boks kikerter à 250 g (avrent vekt)",
+      "250 gram -> 250 g"
+    ],
+    [
+      "1 boks røde linser à 230 gram (avrent vekt)",
+      "1 boks røde linser à 230 g (avrent vekt)",
+      "230 gram -> 230 g"
+    ],
+    [
+      "Nøytral olje",
+      "Nøytral olje"
+    ],
+    [
+      "3 ts rød karripasta",
+      "3 ts rød karripasta"
+    ],
+    [
+      "1 boks hermetiske tomater à 400 gram",
+      "1 boks hermetiske tomater à 400 g",
+      "400 gram -> 400 g"
+    ],
+    [
+      "2 dl kokosmelk eller fløte",
+      "2 dl kokosmelk eller fløte"
+    ],
+    [
+      "100 gram sukkererter",
+      "100 g sukkererter",
+      "100 gram -> 100 g"
+    ],
+    [
+      "3 stk vårløk",
+      "3 stk vårløk"
+    ],
+    [
+      "1/2 stk lime",
+      "1/2 stk lime"
+    ],
+    [
+      "Salt og pepper",
+      "Salt og pepper"
+    ],
+    [
+      "Koriander (valgfritt)",
+      "Koriander (valgfritt)"
+    ],
+    [
+      "Tilbehør",
+      "Tilbehør"
+    ],
+    [
+      "Ris eller nanbrød",
+      "Ris eller nanbrød"
+    ],
+    [
+      "Start med å koke risen, så er den klar innen gryten settes på bordet.",
+      "Start med å koke risen, så er den klar innen gryten settes på bordet."
+    ],
+    [
+      "Skjær opp grønnsakene slik at du har dem klare. Skrell rødløken og skjær den i tynne båter. Skjær paprikaen i halve ringer, skrell og riv ingefæren fint på et råkostjern og skrell og finhakk feddene med hvitløk.",
+      "Skjær opp grønnsakene slik at du har dem klare. Skrell rødløken og skjær den i tynne båter. Skjær paprikaen i halve ringer, skrell og riv ingefæren fint på et råkostjern og skrell og finhakk feddene med hvitløk."
+    ],
+    [
+      "Hell av vannet av kikertene og linsene og skyll de i et dørslag.",
+      "Hell av vannet av kikertene og linsene og skyll de i et dørslag."
+    ],
+    [
+      "Ha nøytral olje i en panne eller gryte og surr oppskåret løk, paprika og ingefær noen minutter til løken begynner å bli myk. Ha så i hvitløken og surr videre litt til. Lag en liten grop i bunnen av gryten eller pannen og fres noen teskjeer karripasta i et par minutter.",
+      "Ha nøytral olje i en panne eller gryte og surr oppskåret løk, paprika og ingefær noen minutter til løken begynner å bli myk. Ha så i hvitløken og surr videre litt til. Lag en liten grop i bunnen av gryten eller pannen og fres noen teskjeer karripasta i et par minutter."
+    ],
+    [
+      "Tilsett en boks hermetiske tomater, kokosmelk og kok opp. Ha også i kikertene og linsene og la curryen småputre i 5-10 minutter slik at smakene får satt seg.",
+      "Tilsett en boks hermetiske tomater, kokosmelk og kok opp. Ha også i kikertene og linsene og la curryen småputre i 5-10 minutter slik at smakene får satt seg."
+    ],
+    [
+      "Skyll og skjær sukkerertene i biter og kutt vårløken i tynne ringer. Når gryten nærmer seg serveringsklar skvis jeg i saften fra en halv lime, og har i sukkerertene. La gryten koke et lite minutt, og smak deg frem med salt og pepper.",
+      "Skyll og skjær sukkerertene i biter og kutt vårløken i tynne ringer. Når gryten nærmer seg serveringsklar skvis jeg i saften fra en halv lime, og har i sukkerertene. La gryten koke et lite minutt, og smak deg frem med salt og pepper."
+    ],
+    [
+      "Strø over vårløk og koriander rett før servering. Server currygryten med ris eller nanbrød til.",
+      "Strø over vårløk og koriander rett før servering. Server currygryten med ris eller nanbrød til."
+    ]
+  ],
+  "markdown": "---\nsource: https://detgladekjokken.no/oppskrift/currygryte-med-kikerter/\ntier: heading heuristic\nreviewed: false\n---\n\n# Currygryte med kikerter\n\n## Ingredients:\n\n### Ingredienser\n\n- 1 stk rødløk\n- 1 stk spisspaprika\n- 3 cm ingefær\n- 2 fedd hvitløk\n- 1 boks kikerter à 250 g (avrent vekt)\n- 1 boks røde linser à 230 g (avrent vekt)\n- Nøytral olje\n- 3 ts rød karripasta\n- 1 boks hermetiske tomater à 400 g\n- 2 dl kokosmelk eller fløte\n- 100 g sukkererter\n- 3 stk vårløk\n- 1/2 stk lime\n- Salt og pepper\n- Koriander (valgfritt)\n- Tilbehør\n- Ris eller nanbrød\n\n## TODO:\n\n### Fremgangsmåte\n\n1. Start med å koke risen, så er den klar innen gryten settes på bordet.\n2. Skjær opp grønnsakene slik at du har dem klare. Skrell rødløken og skjær den i tynne båter. Skjær paprikaen i halve ringer, skrell og riv ingefæren fint på et råkostjern og skrell og finhakk feddene med hvitløk.\n3. Hell av vannet av kikertene og linsene og skyll de i et dørslag.\n4. Ha nøytral olje i en panne eller gryte og surr oppskåret løk, paprika og ingefær noen minutter til løken begynner å bli myk. Ha så i hvitløken og surr videre litt til. Lag en liten grop i bunnen av gryten eller pannen og fres noen teskjeer karripasta i et par minutter.\n5. Tilsett en boks hermetiske tomater, kokosmelk og kok opp. Ha også i kikertene og linsene og la curryen småputre i 5-10 minutter slik at smakene får satt seg.\n6. Skyll og skjær sukkerertene i biter og kutt vårløken i tynne ringer. Når gryten nærmer seg serveringsklar skvis jeg i saften fra en halv lime, og har i sukkerertene. La gryten koke et lite minutt, og smak deg frem med salt og pepper.\n7. Strø over vårløk og koriander rett før servering. Server currygryten med ris eller nanbrød til.\n"
+}

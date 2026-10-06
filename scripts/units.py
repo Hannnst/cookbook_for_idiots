@@ -85,8 +85,10 @@ _LIQUIDS = (
 )
 
 # A measurement: number (incl. mixed fraction or range), then the unit.
+# "2-1/4" is a mixed number, not a range, so the hyphenated fraction has to be
+# tried before the bare integer or "2-1/4 pounds" reads as a 2-to-1/4 range.
 _MEASURE_RE = re.compile(
-    r"(?P<num>\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+[.,]\d+|\d+)"
+    r"(?P<num>\d+\s*-\s*\d+\s*/\s*\d+|\d+\s+\d+\s*/\s*\d+|\d+\s*/\s*\d+|\d+[.,]\d+|\d+)"
     r"(?:\s*(?:-|–|—|to|or)\s*(?P<num2>\d+\s*/\s*\d+|\d+[.,]\d+|\d+))?"
     r"\s*(?P<unit>fl\.?\s*oz|fluid\s+ounces?|tablespoons?|teaspoons?|cups?|tbsp|tbsps?|tblsp|"
     r"tbs|ounces?|pounds?|lbs?|sticks?|g|grams?|kilos?|kg|oz|lb|pints?|quarts?|gallons?|ml|dL|dl|cl|l)\b",
@@ -115,10 +117,10 @@ def normalize_fractions(text: str) -> str:
 
 
 def parse_number(token: str) -> float | None:
-    """Parse "2", "2.5", "1/2", "1 1/2" into a float."""
+    """Parse "2", "2.5", "1/2", "1 1/2", "1-1/2" into a float."""
     token = normalize_fractions(token).strip()
     token = re.sub(r"\s+", " ", token)
-    match = re.fullmatch(r"(\d+(?:[.,]\d+)?)\s+(\d+)\s*/\s*(\d+)", token)
+    match = re.fullmatch(r"(\d+(?:[.,]\d+)?)[\s-]+(\d+)\s*/\s*(\d+)", token)
     if match:
         whole, num, den = match.groups()
         try:
@@ -230,6 +232,13 @@ def convert_quantity(line: str) -> tuple[str, str | None]:
     return (text, notes) if notes else (line, None)
 
 
+# "3 3/4 cups (490 g) bread flour": the page already prints the metric value.
+_REDUNDANT_METRIC_RE = re.compile(
+    r"\s*\(\s*\d+(?:[.,]\d+)?\s*(?:kg|g|ml|dl|cl|l)\b[^)]*\)",
+    re.I,
+)
+
+
 def _convert_one(text: str, match: re.Match) -> tuple[str, str | None]:
     """Convert the single measurement described by ``match``."""
     raw_unit = re.sub(r"\s+", " ", match.group("unit").strip().lower())
@@ -243,9 +252,39 @@ def _convert_one(text: str, match: re.Match) -> tuple[str, str | None]:
     mass_key = _MASS_ALIASES.get(raw_unit)
     volume_key = _VOLUME_ALIASES.get(raw_unit)
 
-    # Already metric -- leave alone.
-    if raw_unit in ("ml", "dl", "cl", "l", "g", "kg"):
-        return (text, None)
+    # Already metric, so the numbers do not need converting -- but the house
+    # style wants dl over "4 l" or "400 ml". Only where dl actually reads
+    # better: "2 ml" of cream of tartar has to stay as it is.
+    if raw_unit in ("ml", "cl", "l", "dl", "g", "kg"):
+        if raw_unit in ("g", "kg", "dl") or is_range:
+            return (text, None)
+        millilitres = value * _VOLUME_TO_ML[raw_unit]
+        if millilitres < 100:
+            return (text, None)
+        number, unit = fmt_volume_parts(millilitres)
+        replacement = f"{number} {unit}"
+        note = f"{match.group('num').strip()} {raw_unit} -> {replacement}"
+        return (text[: match.start()] + replacement + text[match.end():], note)
+
+    # The page prints both ("3 3/4 cups (490 g) bread flour"). Keeping the
+    # imperial half means two numbers that can disagree, and it also hides the
+    # ingredient name from the density lookup, so drop it.
+    redundant = _REDUNDANT_METRIC_RE.match(text, match.end())
+    if redundant:
+        note = (
+            f"removed {match.group('num').strip()} {raw_unit}: "
+            f"the page already gives {redundant.group(0).strip()}"
+        )
+        tail = text[redundant.start():]
+        if match.start() == 0:
+            # "3 3/4 cups (490 g) bread flour" -> "490 g bread flour": with the
+            # imperial half gone there is nothing left for the brackets to pair
+            # with at the start of the line.
+            stripped = tail.lstrip()
+            if stripped.startswith("(") and ")" in stripped:
+                close = stripped.find(")")
+                tail = stripped[1:close].strip() + stripped[close + 1:]
+        return (text[: match.start()] + tail, note)
 
     grams: float | None = None
     ml: float | None = None
@@ -365,9 +404,12 @@ def convert_temperature(text: str) -> tuple[str, list[str]]:
         return stash(f"{int(round(celsius))}°C ({fahrenheit}°F)")
 
     # Shield existing pairs, then stash newly converted ones, so neither pass
-    # ever re-reads a "°C (…°F)" it just produced.
-    text = re.sub(r"\d{2,3}\s*[°º]?\s*C\s*\(\s*\d{2,3}\s*[°º]?\s*F\s*\)",
-                  lambda m: stash(m.group(0)), text, flags=re.I)
+    # ever re-reads a "°C (…°F)" it just produced. The ranges have to be in the
+    # pattern too: "40-45°C (104-113°F)" is already a finished pair, and without
+    # the range in the shield it was converted a second time and duplicated.
+    _pair = (r"\d{2,3}(?:\s*[-–—]\s*\d{2,3})?\s*[°º]?\s*(?:degrees\s+)?"
+             r"[CF]\s*\(\s*\d{2,3}(?:\s*[-–—]\s*\d{2,3})?\s*[°º]?\s*(?:degrees\s+)?F\s*\)")
+    text = re.sub(_pair, lambda m: stash(m.group(0)), text, flags=re.I)
     text = _TEMPERATURE_RANGE_RE.sub(from_range, text)
     text = _TEMPERATURE_RANGE_TRAILING_RE.sub(from_trailing_range, text)
     text = re.sub(r"(?<![\d.])(-?\d{2,3})\s*[°º]?\s*(?:degrees\s+)?F\b", from_f, text, flags=re.I)
